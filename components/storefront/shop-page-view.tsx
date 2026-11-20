@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -47,16 +47,16 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
   const [selectedBrand, setSelectedBrand] = useState(query.get("brand") ?? "");
   const [stockOnly, setStockOnly] = useState(query.get("in_stock") === "1");
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    query.get("category")
-  );
+  const initialCategories = [...query.getAll("category"), ...query.getAll("categories[]"), ...query.getAll("categories")];
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([...new Set(initialCategories)]);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(300);
+  const priceTrackRef = useRef<HTMLDivElement>(null);
+  const activePriceThumb = useRef<"min" | "max" | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
-  const [selectedDressStyle, setSelectedDressStyle] = useState<string | null>(
-    query.get("style")
-  );
+  const initialStyles = [...query.getAll("style"), ...query.getAll("styles[]"), ...query.getAll("styles")];
+  const [selectedDressStyles, setSelectedDressStyles] = useState<string[]>([...new Set(initialStyles)]);
   const [sortBy, setSortBy] = useState(
     collection === "new-arrivals" ? "Newest" : "Most Popular"
   );
@@ -85,11 +85,61 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
     max: 300,
     color: "",
     size: "",
-    category: query.get("category"),
-    dressStyle: query.get("style") || "",
+    categories: [...new Set(initialCategories)],
+    dressStyles: [...new Set(initialStyles)],
     brand: query.get("brand") ?? "",
     stock: query.get("in_stock") === "1",
   });
+
+  function updatePriceFromPointer(clientX: number) {
+    const track = priceTrackRef.current;
+    const activeThumb = activePriceThumb.current;
+    if (!track || !activeThumb) return;
+
+    const { left, width } = track.getBoundingClientRect();
+    const nextPrice = Math.round(Math.max(0, Math.min(1, (clientX - left) / width)) * 300);
+
+    if (activeThumb === "min") {
+      setPriceMin(Math.min(nextPrice, priceMax - 10));
+    } else {
+      setPriceMax(Math.max(nextPrice, priceMin + 10));
+    }
+  }
+
+  function handlePriceKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, thumb: "min" | "max") {
+    const currentPrice = thumb === "min" ? priceMin : priceMax;
+    const lowerBound = thumb === "min" ? 0 : priceMin + 10;
+    const upperBound = thumb === "min" ? priceMax - 10 : 300;
+    const step = event.shiftKey ? 10 : 1;
+    let nextPrice = currentPrice;
+
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowUp":
+        nextPrice += step;
+        break;
+      case "ArrowLeft":
+      case "ArrowDown":
+        nextPrice -= step;
+        break;
+      case "Home":
+        nextPrice = lowerBound;
+        break;
+      case "End":
+        nextPrice = upperBound;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const boundedPrice = Math.max(lowerBound, Math.min(upperBound, nextPrice));
+    if (thumb === "min") {
+      setPriceMin(boundedPrice);
+    } else {
+      setPriceMax(boundedPrice);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -125,13 +175,13 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
           ? "price_desc"
           : "top_selling",
     });
-    if (applied.category) params.set("category", applied.category);
+    for (const category of applied.categories) params.append("categories[]", category);
     if (applied.min > 0) params.set("min_price", String(applied.min * 100));
     if (applied.max < 300) params.set("max_price", String(applied.max * 100));
     if (applied.brand) params.set("brand", applied.brand);
     if (applied.stock) params.set("in_stock", "1");
     if (search) params.set("search", search);
-    if (applied.dressStyle) params.set("style", applied.dressStyle);
+    for (const style of applied.dressStyles) params.append("styles[]", style);
     for (const option of [applied.color, applied.size]) if (option) params.append("attribute_value_ids[]",option);
 
     catalogPage("/products?" + params.toString(), controller.signal)
@@ -167,7 +217,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
 
   // Filter content component
   const renderFilterContent = (isMobile = false) => (
-    <div className="space-y-5 sm:space-y-6 font-sans">
+    <div className="space-y-4 font-sans">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-black/10">
         <h2 className="font-bold text-xl text-black">Filters</h2>
@@ -186,28 +236,28 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
 
       {filterError && <p role="alert" className="text-sm text-red-800">{filterError} <button type="button" className="underline" onClick={() => setRetry((count) => count + 1)}>Retry</button></p>}
 
-      {/* Category List */}
-      <div className="space-y-2 pb-5 border-b border-black/10">
+      <div className="space-y-1 pb-4 border-b border-black/10">
         {displayCategories.map((cat) => {
-          const isActive = selectedCategory === cat.slug;
+          const isActive = selectedCategories.includes(cat.slug);
           return (
-            <button
+            <label
               key={cat.slug}
-              onClick={() => setSelectedCategory(isActive ? null : cat.slug)}
-              className={`flex w-full items-center justify-between py-1.5 text-sm sm:text-base transition-colors cursor-pointer ${
-                isActive
-                  ? "font-semibold text-black"
-                  : "text-black/60 hover:text-black"
-              }`}
+              className={`flex w-full cursor-pointer items-center justify-between py-1.5 text-sm transition-colors sm:text-base ${isActive ? "font-semibold text-black" : "text-black/60 hover:text-black"}`}
             >
               <span>{cat.name}</span>
-              <ChevronRight className="h-4 w-4 text-black/40" />
-            </button>
+              <input
+                type="checkbox"
+                checked={isActive}
+                aria-label={`Filter by ${cat.name}`}
+                onChange={() => setSelectedCategories((current) => isActive ? current.filter((slug) => slug !== cat.slug) : [...current, cat.slug])}
+                className="size-4 cursor-pointer accent-black"
+              />
+            </label>
           );
         })}
       </div>
 
-      <div className="space-y-3 border-b border-black/10 pb-5">
+      <div className="space-y-2 border-b border-black/10 pb-4">
         <label className="block text-sm font-semibold">
           Brand
           <select className="mt-2 block w-full rounded-xl border border-black/20 px-3 py-2 font-normal" value={selectedBrand} onChange={(event) => setSelectedBrand(event.target.value)}>
@@ -220,7 +270,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
       </div>
 
       {/* Price Accordion */}
-      <div className="pb-5 border-b border-black/10">
+      <div className="pb-4 border-b border-black/10">
         <button
           onClick={() => setIsPriceOpen(!isPriceOpen)}
           className="flex w-full items-center justify-between py-1 font-bold text-base sm:text-lg text-black cursor-pointer"
@@ -234,9 +284,33 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
         </button>
 
         {isPriceOpen && (
-          <div className="pt-4 space-y-3">
+          <div className="pt-3 space-y-2">
             {/* Visual Dual Slider Track */}
-            <div className="relative flex items-center h-5">
+            <div
+              ref={priceTrackRef}
+              className="relative flex h-5 touch-none items-center"
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                event.preventDefault();
+                const rect = event.currentTarget.getBoundingClientRect();
+                const clickedPrice = Math.round(Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * 300);
+                activePriceThumb.current = Math.abs(clickedPrice - priceMin) <= Math.abs(clickedPrice - priceMax) ? "min" : "max";
+                event.currentTarget.setPointerCapture(event.pointerId);
+                updatePriceFromPointer(event.clientX);
+              }}
+              onPointerMove={(event) => {
+                if (activePriceThumb.current) updatePriceFromPointer(event.clientX);
+              }}
+              onPointerUp={(event) => {
+                activePriceThumb.current = null;
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              onPointerCancel={() => {
+                activePriceThumb.current = null;
+              }}
+            >
               {/* Background Track */}
               <div className="absolute h-1.5 w-full rounded-full bg-[#F0F0F0]" />
               {/* Active Segment */}
@@ -247,40 +321,51 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
                   right: `${100 - (priceMax / 300) * 100}%`,
                 }}
               />
-              {/* Native range inputs overlaid */}
-              <input
-                type="range"
-                min="0"
-                max="300"
-                value={priceMin}
-                onChange={(e) => {
-                  const val = Math.min(Number(e.target.value), priceMax - 10);
-                  setPriceMin(val);
-                }}
-                className="absolute inset-0 w-full opacity-0 cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
+              <button
+                type="button"
+                role="slider"
                 aria-label="Minimum price"
-              />
-              <input
-                type="range"
-                min="0"
-                max="300"
-                value={priceMax}
-                onChange={(e) => {
-                  const val = Math.max(Number(e.target.value), priceMin + 10);
-                  setPriceMax(val);
+                aria-valuemin={0}
+                aria-valuemax={priceMax - 10}
+                aria-valuenow={priceMin}
+                aria-valuetext={`${priceMin} dollars`}
+                onKeyDown={(event) => handlePriceKeyDown(event, "min")}
+                onPointerDown={(event) => event.stopPropagation()}
+                onPointerMove={(event) => {
+                  if (activePriceThumb.current === "min") updatePriceFromPointer(event.clientX);
                 }}
-                className="absolute inset-0 w-full opacity-0 cursor-pointer pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
-                aria-label="Maximum price"
-              />
-              {/* Left Thumb */}
-              <div
+                onPointerUp={() => {
+                  activePriceThumb.current = null;
+                }}
+                onPointerCancel={() => {
+                  activePriceThumb.current = null;
+                }}
                 className="absolute h-5 w-5 rounded-full bg-black shadow-md -translate-x-1/2 pointer-events-none"
                 style={{ left: `${(priceMin / 300) * 100}%` }}
+                tabIndex={0}
               />
-              {/* Right Thumb */}
-              <div
+              <button
+                type="button"
+                role="slider"
+                aria-label="Maximum price"
+                aria-valuemin={priceMin + 10}
+                aria-valuemax={300}
+                aria-valuenow={priceMax}
+                aria-valuetext={`${priceMax}${priceMax === 300 ? " or more" : " dollars"}`}
+                onKeyDown={(event) => handlePriceKeyDown(event, "max")}
+                onPointerDown={(event) => event.stopPropagation()}
+                onPointerMove={(event) => {
+                  if (activePriceThumb.current === "max") updatePriceFromPointer(event.clientX);
+                }}
+                onPointerUp={() => {
+                  activePriceThumb.current = null;
+                }}
+                onPointerCancel={() => {
+                  activePriceThumb.current = null;
+                }}
                 className="absolute h-5 w-5 rounded-full bg-black shadow-md -translate-x-1/2 pointer-events-none"
                 style={{ left: `${(priceMax / 300) * 100}%` }}
+                tabIndex={0}
               />
             </div>
 
@@ -294,7 +379,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
       </div>
 
       {/* Colors Accordion */}
-      <div className="pb-5 border-b border-black/10">
+      <div className="pb-4 border-b border-black/10">
         <button
           onClick={() => setIsColorsOpen(!isColorsOpen)}
           className="flex w-full items-center justify-between py-1 font-bold text-base sm:text-lg text-black cursor-pointer"
@@ -308,7 +393,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
         </button>
 
         {isColorsOpen && (
-          <div className="pt-3 flex flex-wrap gap-2.5 sm:gap-3">
+          <div className="pt-2 flex flex-wrap gap-2">
             {colors.map((col) => {
               const isSelected = Boolean(col.id && selectedColor === col.id);
               return (
@@ -318,7 +403,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
                   onClick={() => setSelectedColor(isSelected ? "" : col.id)}
                   style={{ backgroundColor: col.hex }}
                   className={`relative h-9 w-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                    col.hex === "#FFFFFF" ? "border border-black/20" : ""
+                    ["#fff", "#ffffff"].includes(col.hex.toLowerCase()) ? "border border-black/30 ring-1 ring-black/10" : ""
                   }`}
                   title={col.name}
                   aria-label={`Select color ${col.name}`}
@@ -326,7 +411,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
                   {isSelected && (
                     <Check
                       className={`h-4 w-4 stroke-[3] ${
-                        col.hex === "#FFFFFF" || col.hex === "#F5DD06"
+                        ["#fff", "#ffffff", "#f5dd06", "#facc15"].includes(col.hex.toLowerCase())
                           ? "text-black"
                           : "text-white"
                       }`}
@@ -340,7 +425,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
       </div>
 
       {/* Size Accordion */}
-      <div className="pb-5 border-b border-black/10">
+      <div className="pb-4 border-b border-black/10">
         <button
           onClick={() => setIsSizesOpen(!isSizesOpen)}
           className="flex w-full items-center justify-between py-1 font-bold text-base sm:text-lg text-black cursor-pointer"
@@ -376,8 +461,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
         )}
       </div>
 
-      {/* Dress Style Accordion */}
-      <div className="pb-5 border-b border-black/10">
+      <div className="pb-4 border-b border-black/10">
         <button
           onClick={() => setIsDressStyleOpen(!isDressStyleOpen)}
           className="flex w-full items-center justify-between py-1 font-bold text-base sm:text-lg text-black cursor-pointer"
@@ -391,24 +475,31 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
         </button>
 
         {isDressStyleOpen && (
-          <div className="pt-2 space-y-1.5">
+          <div className="pt-2 space-y-1">
             {styles.map((style) => {
-              const isActive = selectedDressStyle === style.slug;
+              const isActive = selectedDressStyles.includes(style.slug);
               return (
-                <button
+                <label
                   key={style.slug}
-                  onClick={() =>
-                    setSelectedDressStyle(isActive ? null : style.slug)
-                  }
-                  className={`flex w-full items-center justify-between py-1.5 text-sm sm:text-base transition-colors cursor-pointer ${
-                    isActive
-                      ? "font-semibold text-black"
-                      : "text-black/60 hover:text-black"
-                  }`}
+                  className={`flex w-full cursor-pointer items-center justify-between py-1 text-sm transition-colors sm:text-base ${isActive ? "font-semibold text-black" : "text-black/60 hover:text-black"}`}
                 >
                   <span>{style.name}</span>
-                  <ChevronRight className="h-4 w-4 text-black/40" />
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    aria-label={`Filter by ${style.name}`}
+                    onChange={() => {
+                      const nextStyles = isActive
+                        ? selectedDressStyles.filter((slug) => slug !== style.slug)
+                        : [...selectedDressStyles, style.slug];
+                      setSelectedDressStyles(nextStyles);
+                      setCurrentPage(1);
+                      setLoading(true);
+                      setApplied((current) => ({ ...current, dressStyles: nextStyles }));
+                    }}
+                    className="size-4 cursor-pointer accent-black"
+                  />
+                </label>
               );
             })}
           </div>
@@ -416,7 +507,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
       </div>
 
       {/* Apply Filter Button */}
-      <div className="pt-2">
+      <div className="pt-1">
         <button
           onClick={() => {
             setLoading(true);
@@ -426,23 +517,23 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
               max: priceMax,
               color: selectedColor,
               size: selectedSize,
-              category: selectedCategory,
-              dressStyle: selectedDressStyle || "",
+              categories: selectedCategories,
+              dressStyles: selectedDressStyles,
               brand: selectedBrand,
               stock: stockOnly,
             });
             setIsMobileFilterOpen(false);
           }}
-          className="w-full rounded-full bg-black py-3.5 sm:py-4 text-center text-sm font-medium text-white transition-all hover:bg-black/90 active:scale-[0.99] cursor-pointer shadow-xs"
+          className="w-full rounded-full bg-black py-3 text-center text-sm font-medium text-white transition-all hover:bg-black/90 active:scale-[0.99] cursor-pointer shadow-xs"
         >
           Apply filters
         </button>
         <button
           type="button"
-          className="mt-3 w-full text-sm underline"
+          className="mt-2 w-full text-sm underline"
           onClick={() => {
-            setSelectedCategory(null);
-            setSelectedDressStyle(null);
+            setSelectedCategories([]);
+            setSelectedDressStyles([]);
             setSelectedBrand("");
             setStockOnly(false);
             setSelectedColor("");
@@ -450,7 +541,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
             setPriceMin(0);
             setPriceMax(300);
             setCurrentPage(1);
-            setApplied({ min: 0, max: 300, color: "", size: "", category: null, dressStyle: "", brand: "", stock: false });
+            setApplied({ min: 0, max: 300, color: "", size: "", categories: [], dressStyles: [], brand: "", stock: false });
             setLoading(true);
           }}
         >
@@ -460,10 +551,11 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
     </div>
   );
 
+  const selectedCategoryNames = displayCategories.filter((category) => applied.categories.includes(category.slug)).map((category) => category.name);
+  const selectedStyleNames = styles.filter((style) => applied.dressStyles.includes(style.slug)).map((style) => style.name);
   const categoryTitle = search ? "Search results"
-    : displayCategories.find((category) => category.slug === applied.category)?.name
-    ?? styles.find((style) => style.slug === applied.dressStyle)?.name
-    ?? (collection === "new-arrivals" ? "New Arrivals" : collection === "top-selling" ? "Top Selling" : "Shop");
+    : [...selectedCategoryNames, ...selectedStyleNames].join(", ")
+    || (collection === "new-arrivals" ? "New Arrivals" : collection === "top-selling" ? "Top Selling" : "Shop");
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 pb-24">
@@ -482,7 +574,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
       {/* Main Grid: Sidebar Filters (Left) + Product Catalog (Right) */}
       <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
         {/* Desktop Left Sidebar Filters */}
-        <aside className="hidden lg:block w-[295px] shrink-0 rounded-[20px] border border-black/10 bg-white p-6 shadow-xs">
+        <aside className="hidden lg:block w-[295px] shrink-0 rounded-[20px] border border-black/10 bg-white p-5 shadow-xs">
           {renderFilterContent(false)}
         </aside>
 
@@ -495,7 +587,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
               onClick={() => setIsMobileFilterOpen(false)}
             />
             {/* Sheet Container with rounded top */}
-            <div className="relative z-10 w-full h-[calc(100vh-70px)] bg-white rounded-t-[20px] p-5 sm:p-6 overflow-y-auto shadow-2xl">
+            <div className="relative z-10 w-full h-[calc(100vh-70px)] bg-white rounded-t-[20px] p-4 sm:p-5 overflow-y-auto shadow-2xl">
               {renderFilterContent(true)}
             </div>
           </div>
