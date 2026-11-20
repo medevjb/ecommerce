@@ -9,6 +9,7 @@ import { apiOperations, sections, type Action, type Field, type Operation, type 
 import { ApiError, human, money, staffRequest, type PageInfo, type Staff } from "@/lib/staff-api";
 import { permitted, useStaff, useStaffProfileUpdate } from "./admin-shell";
 import { AccountSettings, SiteSettings } from "./settings-panels";
+import { ImageUploadField, imageFields, imageSelection, uploadImage, type ImageScope } from "./image-upload-field";
 import VariantBuilder from "./variant-builder";
 
 type Row = Record<string, unknown>;
@@ -203,6 +204,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
   const [busy, setBusy] = useState(false);
   const [response, setResponse] = useState<unknown>();
   const [baseSku, setBaseSku] = useState("");
+  const [queuedProductImages, setQueuedProductImages] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [optionGroups, setOptionGroups] = useState<Record<string, Choice[]>>({});
   const idempotency = useRef<string | undefined>(undefined);
@@ -246,13 +248,31 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
     if (busy || loading || !operation) return;
     setError(""); setFieldErrors({}); setBusy(true);
     try {
-      const body = buildBody(operation,new FormData(event.currentTarget));
+      const form = new FormData(event.currentTarget);
+      const body = await buildBody(operation,form,base,imageScope(sectionKey,operation.method));
+      if (operationKey === "createProduct") setQueuedProductImages(0);
       if (operation.idempotent) idempotency.current ??= crypto.randomUUID();
       const { data } = await staffRequest(bind(operation.path,parent,id), {method:operation.method,body,idempotency:idempotency.current});
-      setResponse(data); setSubmitted(true);
+      setResponse(data);
+      if (operationKey !== "createProduct") setSubmitted(true);
       onSaved(`${label} completed.`);
       if (operationKey === "createProduct" && permitted(staff, "createProductVariant") && record(data).id) {
         setBaseSku(String(record(body).sku ?? ""));
+        const images = form.getAll("draft_images").filter((file): file is File => file instanceof File && file.size > 0);
+        const productId = String(record(data).id);
+        let failed = 0;
+        for (const image of images) {
+          const upload = new FormData();
+          upload.set("image", image);
+          try {
+            await staffRequest(`/products/${encodeURIComponent(productId)}/images`, {method:"POST",body:upload});
+          } catch {
+            failed++;
+          }
+        }
+        setQueuedProductImages(failed);
+        setSubmitted(true);
+        if (images.length && failed < images.length) onSaved("Product draft and images saved.");
         return;
       }
       if (!operationKey.includes("TwoFactor") && operationKey !== "replaceStaffRecoveryCodes") {
@@ -269,6 +289,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
     <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#ebe8f2] bg-white p-5"><div><h2 className="text-xl font-semibold">{createdProductId ? "Add variants (optional)" : label}</h2>{targetName !== "—" && <p className="mt-1 text-sm text-slate-600">{targetName}</p>}</div><button type="button" className={secondary} onClick={() => ref.current?.close()} aria-label="Close dialog"><X size={17} /></button></div>
     <div className="space-y-4 p-5">
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {createdProductId && queuedProductImages > 0 && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{queuedProductImages} images could not be saved. The draft is safe. <Link className="underline" href={`/admin/products/${encodeURIComponent(createdProductId)}/images`}>Open product images</Link> to retry.</p>}
       {variantProductId ? <VariantBuilder
         productId={variantProductId}
         productName={createdProductId ? String(record(response).name ?? "Product") : undefined}
@@ -279,7 +300,13 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
       /> : loading ? <p role="status">Loading record…</p> : task.inspect ? <Details data={base} /> : showResponse ? <><p className="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">Save any recovery codes securely before closing.</p><Details data={response} />{operationKey === "confirmStaffTwoFactor" && <Link className={primary} href="/login">Sign in again</Link>}</> :
       <form onSubmit={submit} className="space-y-4">
         {destructive && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-950">Review this action before confirming. It will update the live staff workspace.</p>}
-        <div className="grid gap-4 sm:grid-cols-2">{fields.map((field) => <FormField key={field.name} field={field} value={initialValue(field,base,operationKey)} errors={fieldErrors[field.name]} choices={optionGroups[optionSources[field.name]]} />)}</div>
+        <div className="grid gap-4 sm:grid-cols-2">{fields.map((field) => field.name === "data.items" ? <SectionItems key={field.name} value={get(base,field.name)} /> :
+          imageFields.has(field.name) ? <ImageUploadField key={field.name} name={field.name} label={field.label} url={get(base,field.name)} error={fieldErrors[field.name]?.[0]} /> :
+          <FormField key={field.name} field={field} value={initialValue(field,base,operationKey)} errors={fieldErrors[field.name]} choices={optionGroups[optionSources[field.name]]} />)}</div>
+        {operationKey === "createProduct" && permitted(staff,"uploadProductImage") && <label className="block space-y-1.5 rounded-xl border border-[#ded8ec] p-3 text-sm font-semibold">
+          Product photos <span className="font-normal text-zinc-500">(optional)</span>
+          <input type="file" multiple name="draft_images" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-1.5 file:text-violet-900" />
+        </label>}
         <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={() => ref.current?.close()}>Cancel</button><button type="submit" disabled={busy} className={primary}>{busy ? "Saving…" : destructive ? "Confirm action" : operationKey === "createProduct" ? "Save draft" : "Save changes"}</button></div>
       </form>}
     </div>
@@ -326,13 +353,53 @@ function FormField({field,value,errors,choices}: {field:Field;value:unknown;erro
   </label>;
 }
 
-function buildBody(operation: Operation, data: FormData) {
+function imageScope(section: string, method: string): ImageScope {
+  if (section === "categories") return method === "POST" ? "category-create" : "category-update";
+  if (section === "brands") return method === "POST" ? "brand-create" : "brand-update";
+  return "content";
+}
+
+async function buildBody(operation: Operation, data: FormData, base: unknown, scope: ImageScope) {
   if (!operation.fields?.length) return undefined;
   const payload: Row = {};
   const files = new FormData();
   for (const field of operation.fields) {
     if (field.kind === "list" && data.has(field.name + ".__picker")) {
       payload[field.name] = data.getAll(field.name);
+      continue;
+    }
+    if (imageFields.has(field.name)) {
+      const selected = imageSelection(data,field.name);
+      const previous = get(base,field.name);
+      const image = selected instanceof File ? await uploadImage(scope,selected) : selected === null ? null : previous;
+      if (image !== undefined) {
+        const [parent,key] = field.name.split(".");
+        if (key) payload[parent] = {...record(payload[parent]),[key]:image};
+        else payload[parent] = image;
+      }
+      continue;
+    }
+    if (field.name === "data.items") {
+      const keys = data.getAll("section_item_key").map(String);
+      const original = get(base,"data.items");
+      const originalItems = Array.isArray(original) ? original.map(record) : [];
+      if (data.has("section_items_present")) {
+        const items = [];
+        for (const key of keys) {
+          const prefix = "section_item."+key+".";
+          const previous = /^old-\d+$/.test(key) ? originalItems[Number(key.slice(4))] : undefined;
+          const item: Row = {};
+          for (const property of ["title","reference_id","image_alt","link_url"]) {
+            const value = String(data.get(prefix+property) ?? "").trim();
+            if (value) item[property] = value;
+          }
+          const image = imageSelection(data,prefix+"image_url");
+          if (image instanceof File) item.image_url = await uploadImage(scope,image);
+          else if (image !== null && previous?.image_url) item.image_url = previous.image_url;
+          items.push(item);
+        }
+        payload.data = {...record(payload.data),items};
+      }
       continue;
     }
     const value = data.get(field.name);
@@ -362,4 +429,20 @@ function buildBody(operation: Operation, data: FormData) {
     else payload[parent] = parsed;
   }
   return operation.multipart ? files : payload;
+}
+
+
+function SectionItems({value}:{value:unknown}) {
+  const [rows,setRows] = useState(() => Array.isArray(value) ? value.map((item,index) => ({ key:"old-"+index, data:record(item) })) : []);
+  return <fieldset className="space-y-3 sm:col-span-2">
+    <legend className="mb-2 text-sm font-semibold text-[#574b72]">Section items</legend>
+    <input type="hidden" name="section_items_present" value="1" />
+    {rows.map(({key,data})=><div key={key} className="grid gap-3 rounded-xl border border-[#ded8ec] p-3 sm:grid-cols-2">
+      <input type="hidden" name="section_item_key" value={key} />
+      {[["title","Title"],["link_url","Destination link"],["image_alt","Image alt text"],["reference_id","Catalog reference ID"]].map(([name,label])=><label key={name} className="space-y-1 text-xs font-semibold text-[#574b72]">{label}<input className={inputClass} name={`section_item.${key}.${name}`} defaultValue={String(data[name]??"")} /></label>)}
+      <ImageUploadField name={`section_item.${key}.image_url`} label="Tile image" url={data.image_url} />
+      <button type="button" className={secondary} onClick={()=>setRows((items)=>items.filter((item)=>item.key!==key))}>Remove item</button>
+    </div>)}
+    <button type="button" disabled={rows.length>=24} className={secondary} onClick={()=>setRows((items)=>[...items,{key:crypto.randomUUID(),data:{}}])}><Plus size={15}/> Add item</button>
+  </fieldset>;
 }

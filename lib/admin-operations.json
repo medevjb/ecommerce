@@ -2752,6 +2752,15 @@
         "required": true
       },
       {
+        "name": "data.rating",
+        "label": "Star rating",
+        "kind": "number",
+        "min": 1,
+        "max": 5,
+        "integer": true,
+        "nullable": true
+      },
+      {
         "name": "data.source",
         "label": "Source",
         "kind": "text",
@@ -2826,6 +2835,15 @@
         "label": "Quote",
         "kind": "text",
         "required": false
+      },
+      {
+        "name": "data.rating",
+        "label": "Star rating",
+        "kind": "number",
+        "min": 1,
+        "max": 5,
+        "integer": true,
+        "nullable": true
       },
       {
         "name": "data.source",

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { ProductDetailView } from "@/components/storefront";
+import { ProductDetailView } from "@/components/storefront/product-detail-view";
 import { adaptProduct, catalog, CatalogError, type CatalogAttribute, type CatalogProduct, type CatalogReview } from "@/lib/catalog";
 
 interface ProductDetailPageProps {
@@ -21,7 +21,7 @@ async function ProductDetailLoader({
     if (error instanceof CatalogError && error.status === 404) notFound();
     throw error;
   });
-  return <ProductDetailView product={adaptProduct(product, attributes)} related={related.map((item) => adaptProduct(item))} reviews={reviews} />;
+  return <ProductDetailView key={product.id} product={adaptProduct(product, attributes)} related={related.map((item) => adaptProduct(item))} reviews={reviews} />;
 }
 
 export default function ProductDetailPage({

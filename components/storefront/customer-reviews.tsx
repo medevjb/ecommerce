@@ -1,208 +1,56 @@
 "use client";
 
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
-import { ArrowLeft, ArrowRight, Check, Star } from "lucide-react";
-import { CUSTOMER_REVIEWS } from "@/lib/mock-data";
+import { useRef } from "react";
+import { ArrowLeft, ArrowRight, Star } from "lucide-react";
 
-function useWindowWidth() {
-  return useSyncExternalStore(
-    (callback) => {
-      window.addEventListener("resize", callback);
-      return () => window.removeEventListener("resize", callback);
-    },
-    () => window.innerWidth,
-    () => 1440
-  );
-}
+type Testimonial = {
+  id: string;
+  data: { author?: string; quote?: string; rating?: number | string | null };
+};
 
-export function CustomerReviewsSection() {
-  const windowWidth = useWindowWidth();
-  const L = CUSTOMER_REVIEWS.length;
+export function CustomerReviewsSection({ testimonials }: { testimonials: Testimonial[] }) {
+  const track = useRef<HTMLUListElement>(null);
+  if (!testimonials.length) return null;
 
-  // Tripled list for seamless infinite looping
-  const reviews = [...CUSTOMER_REVIEWS, ...CUSTOMER_REVIEWS, ...CUSTOMER_REVIEWS];
+  function move(direction: -1 | 1) {
+    const list = track.current;
+    if (!list) return;
 
-  // Start at middle set (index L)
-  const [index, setIndex] = useState(L);
-  const [isTransitioning, setIsTransitioning] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
+    const [first, second] = list.children;
+    if (!(first instanceof HTMLElement) || !(second instanceof HTMLElement)) return;
+    const end = list.scrollWidth - list.clientWidth;
+    const step = second.offsetLeft - first.offsetLeft;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    const left = direction > 0 && list.scrollLeft >= end - 2 ? 0
+      : direction < 0 && list.scrollLeft <= 2 ? end
+      : Math.max(0, Math.min(end, list.scrollLeft + direction * step));
 
-  const touchStartX = useRef(0);
-  const touchDeltaX = useRef(0);
+    list.scrollTo({ left, behavior });
+  }
 
-  // Responsive dimensions
-  const isSmall = windowWidth < 640;
-  const isMobile = windowWidth < 768;
-  const cardWidth = isSmall
-    ? Math.max(300, windowWidth - 32)
-    : isMobile
-    ? 350
-    : 400;
-  const gap = isSmall ? 16 : 20;
-  const step = cardWidth + gap;
+  const arrow = "grid size-10 place-items-center rounded-full text-black hover:bg-zinc-100 focus-visible:outline-2";
 
-  // On desktop, center the second card of the visible trio (index + 1)
-  // On mobile, center the primary active card (index)
-  const centerIndex = isMobile ? index : index + 1;
-  const translateX = windowWidth / 2 - (centerIndex * step + cardWidth / 2);
-
-  // Autoplay timer
-  useEffect(() => {
-    if (isHovered) return;
-
-    const timer = setInterval(() => {
-      setIsTransitioning(true);
-      setIndex((prev) => prev + 1);
-    }, 3500);
-
-    return () => clearInterval(timer);
-  }, [isHovered]);
-
-  // Re-enable CSS transitions after silent jump
-  useEffect(() => {
-    if (!isTransitioning) {
-      const raf = requestAnimationFrame(() => {
-        setIsTransitioning(true);
-      });
-      return () => cancelAnimationFrame(raf);
-    }
-  }, [isTransitioning]);
-
-  // Handle seamless wrap around at ends of cloned sets
-  const handleTransitionEnd = () => {
-    if (index >= 2 * L) {
-      setIsTransitioning(false);
-      setIndex((prev) => prev - L);
-    } else if (index < L) {
-      setIsTransitioning(false);
-      setIndex((prev) => prev + L);
-    }
-  };
-
-  const handlePrev = () => {
-    setIsTransitioning(true);
-    setIndex((prev) => prev - 1);
-  };
-
-  const handleNext = () => {
-    setIsTransitioning(true);
-    setIndex((prev) => prev + 1);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsHovered(true);
-    touchStartX.current = e.touches[0].clientX;
-    touchDeltaX.current = 0;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
-  };
-
-  const handleTouchEnd = () => {
-    setIsHovered(false);
-    if (touchDeltaX.current > 50) {
-      handlePrev();
-    } else if (touchDeltaX.current < -50) {
-      handleNext();
-    }
-  };
-
-  return (
-    <section className="py-14 sm:py-20 overflow-hidden w-full">
-      {/* Header Container (Bounded to 1440px) */}
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 mb-8 sm:mb-10">
-        <div className="flex items-end sm:items-center justify-between gap-4">
-          <h2 className="font-black text-[32px] sm:text-5xl lg:text-[48px] leading-[36px] sm:leading-tight tracking-tighter text-black uppercase font-sans">
-            OUR HAPPY <br className="sm:hidden" />
-            CUSTOMERS
-          </h2>
-
-          {/* Minimalist Arrow Controls */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0 pb-1 sm:pb-0">
-            <button
-              onClick={handlePrev}
-              className="text-black hover:opacity-60 transition-opacity p-1 sm:p-2 cursor-pointer"
-              aria-label="Previous review"
-            >
-              <ArrowLeft className="h-6 w-6 stroke-[2]" />
-            </button>
-            <button
-              onClick={handleNext}
-              className="text-black hover:opacity-60 transition-opacity p-1 sm:p-2 cursor-pointer"
-              aria-label="Next review"
-            >
-              <ArrowRight className="h-6 w-6 stroke-[2]" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Full-Width Slider Track with Gradient Fades */}
-      <div
-        className="relative w-full overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Left edge gradient fade */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-24 lg:w-36 bg-gradient-to-r from-white via-white/80 to-transparent z-10" />
-
-        {/* Right edge gradient fade */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-24 lg:w-36 bg-gradient-to-l from-white via-white/80 to-transparent z-10" />
-
-        {/* Cards Row */}
-        <div
-          className="flex py-2"
-          style={{
-            transform: `translateX(${translateX}px)`,
-            gap: `${gap}px`,
-            transition: isTransitioning
-              ? "transform 600ms cubic-bezier(0.25, 1, 0.5, 1)"
-              : "none",
-          }}
-          onTransitionEnd={handleTransitionEnd}
-        >
-          {reviews.map((review, i) => (
-            <div
-              key={`${review.id}-${i}`}
-              style={{ width: `${cardWidth}px` }}
-              className="shrink-0 min-h-[240px] rounded-[20px] border border-black/10 bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between"
-            >
-              <div>
-                {/* 5 Solid Gold Stars */}
-                <div className="flex items-center gap-1 text-[#FFC633]">
-                  {Array.from({ length: 5 }).map((_, starIdx) => (
-                    <Star
-                      key={starIdx}
-                      className="h-5 w-5 fill-[#FFC633] text-[#FFC633]"
-                    />
-                  ))}
-                </div>
-
-                {/* Name + Verified Checkmark */}
-                <div className="mt-3.5 sm:mt-4 flex items-center gap-1.5">
-                  <span className="font-bold text-lg sm:text-[20px] text-black font-sans">
-                    {review.name}
-                  </span>
-                  {review.verified && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#01AB31] text-white">
-                      <Check className="h-3.5 w-3.5 stroke-[3]" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Review Text */}
-                <p className="mt-3 text-sm sm:text-base text-black/60 leading-relaxed font-sans">
-                  {review.comment}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="mx-auto w-full max-w-[1440px] py-14 pl-5 sm:py-20 sm:pl-10" aria-labelledby="happy-customers">
+    <div className="mb-6 flex items-end justify-between gap-3 pr-5 sm:mb-9 sm:pr-10">
+      <h2 id="happy-customers" className="text-3xl font-black uppercase leading-none tracking-tighter sm:text-5xl">Our Happy Customers</h2>
+      {testimonials.length > 1 && <div className="flex shrink-0 gap-1">
+        <button type="button" className={arrow} onClick={() => move(-1)} aria-label="Previous testimonial"><ArrowLeft size={22} /></button>
+        <button type="button" className={arrow} onClick={() => move(1)} aria-label="Next testimonial"><ArrowRight size={22} /></button>
+      </div>}
+    </div>
+    <ul ref={track} className="relative flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pr-5 pr-5 sm:scroll-pr-10 sm:pr-10 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      {testimonials.map(({ id, data }) => {
+        const rating = Number(data.rating);
+        return <li key={id} className="min-h-44 basis-[88%] shrink-0 snap-start rounded-[20px] border border-zinc-200 px-5 py-6 sm:basis-[calc((100%-1rem)/2)] md:min-h-52 md:px-7 md:py-7 lg:basis-[calc((100%-2rem)/3)]">
+          {Number.isInteger(rating) && rating >= 1 && rating <= 5 && <div className="mb-3 flex gap-1 text-amber-400" aria-label={`Rated ${rating} out of 5 stars`} role="img">
+            {Array.from({ length: 5 }, (_, index) => <Star key={index} size={17} aria-hidden className={index < rating ? "fill-current" : "text-zinc-200"} />)}
+          </div>}
+          <figure>
+            <figcaption className="font-bold">{data.author}</figcaption>
+            <blockquote className="mt-2 text-sm leading-relaxed text-zinc-600">“{data.quote}”</blockquote>
+          </figure>
+        </li>;
+      })}
+    </ul>
+  </section>;
 }

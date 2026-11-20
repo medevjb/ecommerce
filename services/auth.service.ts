@@ -1,4 +1,4 @@
-import { backend } from "@/lib/staff-api";
+import { ApiError, backend } from "@/lib/staff-api";
 import { apiClient } from "@/lib/api-client";
 import { LoginCredentials, RegisterCredentials, User } from "@/types";
 
@@ -40,7 +40,7 @@ export const authService = {
   async logout(): Promise<void> {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("auth_token");
-      if (token) await backend("/auth/logout",{method:"POST",token}).catch(() => undefined);
+      if (token) await backend("/api/commerce/auth/logout",{method:"POST",token}).catch(() => undefined);
       localStorage.removeItem("auth_token");
       localStorage.removeItem("admin_token");
     }
@@ -50,7 +50,11 @@ export const authService = {
     if (typeof window !== "undefined" && !localStorage.getItem("auth_token")) {
       return null;
     }
-    return backend<User>("/me", { token: localStorage.getItem("auth_token") })
-      .then(({ data }) => ({ ...data, role: "customer" as const })).catch(() => null);
+    return backend<User>("/api/commerce/me", { token: localStorage.getItem("auth_token") })
+      .then(({ data }) => ({ ...data, role: "customer" as const }))
+      .catch((failure: unknown) => {
+        if (failure instanceof ApiError && failure.status === 401) localStorage.removeItem("auth_token");
+        return null;
+      });
   },
 };

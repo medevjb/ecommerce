@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
@@ -12,7 +13,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart();
+  const { addItem, loading, error } = useCart();
+  const [status, setStatus] = useState<"idle" | "adding" | "added" | "failed">("idle");
 
   const currentPrice = product.price;
   const originalPrice = product.originalPrice;
@@ -31,23 +33,24 @@ export function ProductCard({ product }: ProductCardProps) {
           className="relative h-full w-full flex items-center justify-center"
         >
           <Image
-                    unoptimized
+            unoptimized
             src={product.thumbnail}
             alt={product.title}
             fill
+            loading="eager"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-contain p-1.5 sm:p-2 transition-transform duration-300 group-hover:scale-105"
-            priority={product.id.startsWith("prod-na")}
           />
         </Link>
 
         {/* Quick Add to Cart button on hover */}
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            addItem(product, 1);
+          disabled={!product.inStock || loading || status === "adding"}
+          onClick={async () => {
+            setStatus("adding");
+            setStatus(await addItem(product, 1) ? "added" : "failed");
           }}
-          className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-black text-white shadow-md opacity-0 group-hover:opacity-100 transition-all hover:scale-105 cursor-pointer"
+          className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-black text-white shadow-md disabled:opacity-40 lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 transition-all hover:scale-105 cursor-pointer"
           title="Add to Cart"
           aria-label="Add to cart"
         >
@@ -64,8 +67,9 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.title}
         </Link>
 
-        {/* Rating */}
-        <StarRating rating={product.rating} />
+        {product.reviewsCount > 0 && <StarRating rating={product.rating} />}
+        {status === "added" && <Link href="/cart" className="text-xs underline" role="status">Added · View cart</Link>}
+        {status === "failed" && error && <span className="text-xs text-red-800" role="alert">{error}</span>}
 
         {/* Price Row */}
         <div className="flex items-center gap-1.5 sm:gap-3 pt-0.5 flex-wrap">
@@ -79,7 +83,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
 
-          {discountPercent && (
+          {Boolean(discountPercent && discountPercent > 0) && (
             <span className="rounded-full bg-[#FF3333]/10 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-[#FF3333]">
               -{discountPercent}%
             </span>

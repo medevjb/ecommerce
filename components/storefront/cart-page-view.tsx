@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
+import { usd, human } from "@/lib/staff-api";
 import { useCart } from "@/context/cart-context";
 
 export function CartPageView() {
@@ -26,12 +27,19 @@ export function CartPageView() {
     subtotal,
     discountPercent,
     discountAmount,
-    deliveryFee,
+    blocked,
+    clearCart,
     total,
     promoCode,
     applyPromoCode,
     removePromoCode,
   } = useCart();
+
+  const [updating, setUpdating] = useState(false);
+  async function update(action: () => Promise<void>) {
+    setUpdating(true);
+    try { await action(); } finally { setUpdating(false); }
+  }
 
   const [inputCode, setInputCode] = useState("");
   const [feedback, setFeedback] = useState<{
@@ -41,8 +49,9 @@ export function CartPageView() {
 
   const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputCode.trim()) return;
-    const res = await applyPromoCode(inputCode);
+    if (!inputCode.trim() || updating) return;
+    setUpdating(true);
+    const res = await applyPromoCode(inputCode.trim()).finally(() => setUpdating(false));
     if (res.success) {
       setFeedback({ type: "success", message: res.message });
       setInputCode("");
@@ -75,7 +84,7 @@ export function CartPageView() {
         </h1>
 
         {items.length === 0 ? (
-          <div className="rounded-[20px] border border-black/10 bg-white p-8 sm:p-12 text-center my-6">
+          !loading && !error && <div className="rounded-[20px] border border-black/10 bg-white p-8 sm:p-12 text-center my-6">
             <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-[#F0EEED] text-black">
               <ShoppingBag className="h-7 w-7 sm:h-8 sm:w-8" />
             </div>
@@ -96,6 +105,7 @@ export function CartPageView() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
             {/* Left Column: Cart Items List */}
             <div className="lg:col-span-7 xl:col-span-7">
+              <button type="button" className="mb-3 text-sm underline" disabled={updating} onClick={() => update(clearCart)}>Clear cart</button>
               <div className="rounded-[20px] border border-black/10 bg-white p-3.5 sm:p-6 divide-y divide-black/10">
                 {items.map((item) => (
                   <div
@@ -131,6 +141,8 @@ export function CartPageView() {
                           </Link>
 
                           <div className="mt-0.5 space-y-0.5 text-[11px] sm:text-sm text-black">
+                            {item.sku && <p>SKU {item.sku}</p>}
+                            {item.conflict && <p className="text-red-800">{human(item.conflict)}</p>}
                             {item.selectedAttributes?.Size && (
                               <p>
                                 Size:{" "}
@@ -152,7 +164,8 @@ export function CartPageView() {
 
                         {/* Red Delete Trash Button */}
                         <button
-                          onClick={() => removeItem(item.id)}
+                          disabled={updating}
+                          onClick={() => update(() => removeItem(item.id))}
                           className="text-[#FF3333] hover:opacity-75 transition-opacity p-0.5 sm:p-1 cursor-pointer shrink-0"
                           aria-label={`Remove ${item.product.title}`}
                           title="Remove item"
@@ -164,16 +177,17 @@ export function CartPageView() {
                       {/* Bottom Row: Price + Quantity Controller */}
                       <div className="flex items-end justify-between pt-1 sm:pt-2">
                         <span className="font-bold text-base sm:text-2xl text-black font-sans">
-                          ${item.price}
+                          {item.product.inStock ? usd.format(item.price) : "Unavailable"}
                         </span>
 
                         {/* Quantity Controller Pill: [ - 1 + ] */}
                         <div className="flex items-center bg-[#F0F0F0] rounded-full px-2.5 sm:px-5 py-1.5 sm:py-2.5 gap-3 sm:gap-6">
                           <button
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
+                              update(() => updateQuantity(item.id, item.quantity - 1))
                             }
                             className="text-black hover:opacity-60 transition-opacity cursor-pointer p-0.5"
+                            disabled={updating}
                             aria-label="Decrease quantity"
                           >
                             <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -183,9 +197,10 @@ export function CartPageView() {
                           </span>
                           <button
                             onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
+                              update(() => updateQuantity(item.id, item.quantity + 1))
                             }
                             className="text-black hover:opacity-60 transition-opacity cursor-pointer p-0.5"
+                            disabled={updating || item.quantity >= 99}
                             aria-label="Increase quantity"
                           >
                             <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -211,7 +226,7 @@ export function CartPageView() {
                   <div className="flex justify-between items-center text-sm sm:text-xl">
                     <span className="text-black/60">Subtotal</span>
                     <span className="font-bold text-black font-sans">
-                      ${subtotal}
+                      {usd.format(subtotal)}
                     </span>
                   </div>
 
@@ -223,7 +238,8 @@ export function CartPageView() {
                       </span>
                       {promoCode && (
                         <button
-                          onClick={removePromoCode}
+                          disabled={updating}
+                          onClick={() => update(removePromoCode)}
                           className="text-[10px] sm:text-xs text-black/40 hover:text-red-500 underline"
                           title="Remove promo code"
                         >
@@ -232,15 +248,15 @@ export function CartPageView() {
                       )}
                     </div>
                     <span className="font-bold text-[#FF3333] font-sans">
-                      -${discountAmount}
+                      {usd.format(-discountAmount)}
                     </span>
                   </div>
 
-                  {/* Delivery Fee */}
+                  {/* Shipping and tax */}
                   <div className="flex justify-between items-center text-sm sm:text-xl">
                     <span className="text-black/60">Delivery Fee</span>
                     <span className="font-bold text-black font-sans">
-                      ${deliveryFee}
+                      Calculated at checkout
                     </span>
                   </div>
 
@@ -249,9 +265,9 @@ export function CartPageView() {
 
                   {/* Total */}
                   <div className="flex justify-between items-center">
-                    <span className="text-black text-base sm:text-xl">Total</span>
+                    <span className="text-black text-base sm:text-xl">Cart total</span>
                     <span className="font-bold text-xl sm:text-2xl text-black font-sans">
-                      ${total}
+                      {usd.format(total)}
                     </span>
                   </div>
                 </div>
@@ -274,6 +290,7 @@ export function CartPageView() {
                     </div>
                     <button
                       type="submit"
+                      disabled={updating}
                       className="bg-black text-white px-5 sm:px-9 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-base font-medium hover:bg-black/80 transition-colors shrink-0 cursor-pointer"
                     >
                       Apply
@@ -300,13 +317,13 @@ export function CartPageView() {
                 </div>
 
                 {/* Go to Checkout Button */}
-                <Link
+                {!blocked && !updating && <Link
                   href="/checkout"
                   className="w-full bg-black text-white py-3.5 sm:py-4.5 rounded-full font-medium text-xs sm:text-base flex items-center justify-center gap-2 sm:gap-3 hover:bg-black/80 transition-all group cursor-pointer"
                 >
                   <span>Go to Checkout</span>
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                </Link>}
               </div>
             </div>
           </div>

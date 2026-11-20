@@ -9,14 +9,12 @@ import {
   Plus,
   Check,
   Star,
-  SlidersHorizontal,
-  ChevronDown,
-  MoreHorizontal,
 } from "lucide-react";
 import { Product } from "@/types";
 import { ProductCard } from "./product-card";
 import { useCart } from "@/context/cart-context";
 import type { CatalogReview } from "@/lib/catalog";
+import { usd } from "@/lib/staff-api";
 
 interface ProductDetailViewProps {
   product: Product;
@@ -25,7 +23,7 @@ interface ProductDetailViewProps {
 }
 
 export function ProductDetailView({ product, related, reviews }: ProductDetailViewProps) {
-  const { addItem, error:cartError } = useCart();
+  const { addItem, error:cartError, loading } = useCart();
 
   // Images for gallery
   const galleryImages =
@@ -34,41 +32,33 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
       : [product.thumbnail];
   const [activeImage, setActiveImage] = useState(galleryImages[0]);
 
-  const defaultColors = product.colors ?? [];
-  const defaultSizes = product.sizes ?? [];
-  const first = product.variants?.find((variant) => variant.stock > 0);
-  const [selectedColor, setSelectedColor] = useState(first?.attributes.color ?? defaultColors[0]?.name ?? "");
-  const [selectedSize, setSelectedSize] = useState(first?.attributes.size ?? defaultSizes[0] ?? "");
-  const variant = product.variants?.find((item) => (item.attributes.color ?? "") === selectedColor && (item.attributes.size ?? "") === selectedSize);
+  const variants = product.variants ?? [];
+  const defaultVariant = variants.find((item) => item.isDefault && item.stock > 0)
+    ?? variants.find((item) => item.stock > 0) ?? variants[0];
+  const [variantId, setVariantId] = useState(defaultVariant?.id);
+  const variant = variants.find((item) => item.id === variantId);
   const purchasable = Boolean(variant && variant.stock > 0);
-
-  // Quantity selection
   const [quantity, setQuantity] = useState(1);
-
-  // Active Tab: "details" | "reviews" | "faqs"
-  const [activeTab, setActiveTab] = useState<"details" | "reviews" | "faqs">(
-    "reviews"
-  );
-
-  const activeReviews = reviews;
-  const activeRelated = related;
-  const displayRating = product.rating;
-  const displayReviewsCount = product.reviewsCount;
-
-  // Reviews state (show 3 on mobile initially, can load more)
+  const [activeTab, setActiveTab] = useState<"details" | "reviews">("details");
   const [visibleCount, setVisibleCount] = useState(3);
   const [addedToast, setAddedToast] = useState(false);
-
+  const [adding, setAdding] = useState(false);
+  const displayRating = product.rating;
+  const displayReviewsCount = product.reviewsCount;
   const currentPrice = variant?.price ?? product.price;
-  const originalPrice = product.originalPrice;
-  const discountPercent = product.discountPercent ?? 40;
+  const originalPrice = variant ? variant.originalPrice : product.originalPrice;
+  const discountPercent = originalPrice ? Math.round(100 * (originalPrice - currentPrice) / originalPrice) : 0;
 
-  const handleAddToCart = async () => {
-    if (!variant || !purchasable) return;
-    if (!(await addItem({ ...product, price:currentPrice }, quantity, variant.id, variant.attributes))) return;
-    setAddedToast(true);
-    setTimeout(() => setAddedToast(false), 2500);
-  };
+  async function handleAddToCart() {
+    if (!variant || !purchasable || adding || loading) return;
+    setAdding(true);
+    setAddedToast(false);
+    try {
+      setAddedToast(await addItem(product, quantity, variant.id));
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 pb-20">
@@ -86,7 +76,9 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
           Men
         </Link>
         <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-black/40" />
-        <span className="text-black font-medium">{product.category.name}</span>
+        <span className="text-black font-medium">
+          {product.category?.name === "T Shirts" ? "T-shirts" : (product.category?.name || "T-shirts")}
+        </span>
       </nav>
 
       {cartError && <p className="mb-4 text-sm text-red-800" role="alert">{cartError}</p>}
@@ -168,14 +160,14 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
           {/* Price Row */}
           <div className="mt-3.5 sm:mt-4 flex items-center gap-3">
             <span className="font-bold text-2xl sm:text-3xl text-black font-sans">
-              ${currentPrice}
+              {usd.format(currentPrice)}
             </span>
             {originalPrice && (
               <span className="font-bold text-2xl sm:text-3xl text-black/40 line-through font-sans">
-                ${originalPrice}
+                {usd.format(originalPrice)}
               </span>
             )}
-            {discountPercent && (
+            {discountPercent > 0 && (
               <span className="rounded-full bg-[#FF3333]/10 px-3.5 py-1 text-sm font-semibold text-[#FF3333]">
                 -{discountPercent}%
               </span>
@@ -190,62 +182,27 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
           {/* Divider */}
           <div className="border-t border-black/10 my-6" />
 
-          {/* Select Colors */}
-          <div>
-            <span className="text-sm sm:text-base text-black/60 font-sans block mb-3.5">
-              Select Colors
-            </span>
-            <div className="flex items-center gap-3.5">
-              {defaultColors.map((color) => {
-                const isSelected = selectedColor === color.name;
-                return (
-                  <button
-                    key={color.name}
-                    onClick={() => setSelectedColor(color.name)}
-                    style={{ backgroundColor: color.hex }}
-                    className="relative h-9 w-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow-2xs"
-                    title={color.name}
-                    aria-label={`Select ${color.name} color`}
-                  >
-                    {isSelected && (
-                      <Check className="h-4 w-4 text-white stroke-[3]" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-black/10 my-6" />
-
-          {/* Choose Size */}
-          <div>
-            <span className="text-sm sm:text-base text-black/60 font-sans block mb-3.5">
-              Choose Size
-            </span>
-            <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap sm:gap-3">
-              {defaultSizes.map((size) => {
-                const isSelected = selectedSize === size;
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`rounded-full py-2.5 sm:py-3 px-2 sm:px-6 text-xs sm:text-sm font-medium font-sans transition-all cursor-pointer text-center flex items-center justify-center ${
-                      isSelected
-                        ? "bg-black text-white"
-                        : "bg-[#F0F0F0] text-black/60 hover:bg-[#e6e6e6]"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-black/10 my-6" />
+          {variants.some((item) => item.name) && (
+            <label className="mb-6 block text-sm font-medium">
+              {product.variantLabel ?? "Options"}
+              <select
+                className="mt-2 block w-full rounded-xl border border-black/20 p-3"
+                value={variantId}
+                disabled={adding}
+                onChange={(event) => {
+                  setVariantId(event.target.value);
+                  setQuantity(1);
+                  setAddedToast(false);
+                }}
+              >
+                {variants.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name || item.sku}{item.stock > 0 ? "" : " (out of stock)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {/* Quantity Selector + Add to Cart */}
           <div className="flex items-center gap-3 sm:gap-5">
@@ -262,7 +219,8 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
                 {quantity}
               </span>
               <button
-                onClick={() => setQuantity((prev) => prev + 1)}
+                onClick={() => setQuantity((prev) => Math.min(99, prev + 1))}
+                disabled={!purchasable || quantity >= 99 || adding}
                 className="text-black hover:opacity-60 transition-opacity p-0.5 cursor-pointer"
                 aria-label="Increase quantity"
               >
@@ -272,10 +230,10 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
 
             {/* Add to Cart Button */}
             <button
-              onClick={handleAddToCart} disabled={!purchasable}
+              onClick={handleAddToCart} disabled={!purchasable || adding || loading}
               className="flex-1 rounded-full bg-black py-3 sm:py-4 px-4 sm:px-8 text-center text-xs sm:text-base font-medium text-white transition-all hover:bg-black/90 active:scale-[0.99] cursor-pointer shadow-xs"
             >
-              {purchasable ? "Add to Cart" : "Unavailable"}
+              {adding ? "Adding…" : purchasable ? "Add to Cart" : "Unavailable"}
             </button>
           </div>
 
@@ -283,14 +241,15 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
           {addedToast && (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs sm:text-sm font-medium text-emerald-800 transition-all">
               <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Added to your shopping cart!</span>
+              <span role="status">Added to your cart.</span>
+              <Link href="/cart" className="ml-auto underline">View cart</Link>
             </div>
           )}
         </div>
       </div>
 
       {/* 3. Tabs Navigation */}
-      <div className="grid grid-cols-3 border-b border-black/10 mt-12 sm:mt-20 text-center">
+      <div className="grid grid-cols-2 border-b border-black/10 mt-12 sm:mt-20 text-center">
         <button
           onClick={() => setActiveTab("details")}
           className={`pb-3 sm:pb-5 text-xs sm:text-lg lg:text-xl font-sans transition-colors cursor-pointer ${
@@ -313,16 +272,6 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
           Rating & Reviews
         </button>
 
-        <button
-          onClick={() => setActiveTab("faqs")}
-          className={`pb-3 sm:pb-5 text-xs sm:text-lg lg:text-xl font-sans transition-colors cursor-pointer ${
-            activeTab === "faqs"
-              ? "font-medium text-black border-b-2 border-black"
-              : "font-normal text-black/60 hover:text-black"
-          }`}
-        >
-          FAQs
-        </button>
       </div>
 
       {/* Tab Content: Rating & Reviews (Default Tab in Screenshot) */}
@@ -340,37 +289,12 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
             </div>
 
             {/* Actions: Filter, Sort, Write a Review */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Filter Button */}
-              <button
-                className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-[#F0F0F0] text-black hover:bg-[#e6e6e6] transition-colors cursor-pointer shrink-0"
-                aria-label="Filter reviews"
-              >
-                <SlidersHorizontal className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-
-              {/* Sort Dropdown (hidden on mobile to match design) */}
-              <button
-                className="hidden sm:flex items-center gap-1 sm:gap-2 rounded-full bg-[#F0F0F0] px-3 sm:px-5 py-2 sm:py-3 text-xs sm:text-sm font-medium text-black hover:bg-[#e6e6e6] transition-colors cursor-pointer"
-                aria-label="Sort reviews"
-              >
-                <span>Latest</span>
-                <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-black" />
-              </button>
-
-              {/* Write a Review Button */}
-              <button
-                className="rounded-full bg-black px-4 sm:px-7 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-white transition-all hover:bg-black/85 cursor-pointer shadow-xs whitespace-nowrap"
-              >
-                Write a Review
-              </button>
-            </div>
           </div>
 
           {/* Reviews Grid (1 col on mobile, 2 cols on md) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mt-6 sm:mt-8">
-            {activeReviews.length===0&&<p className="text-sm text-zinc-600">No approved reviews yet.</p>}
-            {activeReviews.slice(0, visibleCount).map(
+            {reviews.length===0&&<p className="text-sm text-zinc-600">No approved reviews yet.</p>}
+            {reviews.slice(0, visibleCount).map(
               (review) => (
                 <div
                   key={review.id}
@@ -394,12 +318,6 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
                         ))}
                       </div>
 
-                      <button
-                        className="text-black/40 hover:text-black transition-colors p-1"
-                        aria-label="More options"
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </button>
                     </div>
 
                     {/* Author Name + Verified Badge */}
@@ -436,7 +354,7 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
             )}
           </div>
 
-          {activeReviews.length > visibleCount && (
+          {reviews.length > visibleCount && (
             <div className="mt-9 sm:mt-11 text-center">
               <button
                 onClick={() => setVisibleCount((prev) => prev + 3)}
@@ -453,53 +371,22 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
       {activeTab === "details" && (
         <div className="mt-8 sm:mt-10 max-w-3xl space-y-4 text-black/70 font-sans leading-relaxed">
           <p>{product.description}</p>
-          <ul className="list-disc pl-5 space-y-2 pt-2">
-            <li>100% Combed ringspun cotton (240 GSM heavyweight feel)</li>
-            <li>Reinforced double-needle collar and hem stitching</li>
-            <li>Pre-shrunk fabric to retain shape across repeated washes</li>
-            <li>Standard relaxed streetwear silhouette with drop shoulders</li>
-          </ul>
-        </div>
-      )}
-
-      {/* Tab Content: FAQs */}
-      {activeTab === "faqs" && (
-        <div className="mt-8 sm:mt-10 max-w-3xl space-y-4 font-sans">
-          <div className="rounded-[16px] border border-black/10 p-5 bg-white">
-            <h3 className="font-bold text-base text-black">
-              What is the sizing fit like?
-            </h3>
-            <p className="mt-2 text-sm text-black/60 leading-relaxed">
-              This t-shirt features a true-to-size relaxed boxy cut. If you
-              prefer an oversized streetwear look, we recommend sizing up one
-              size.
-            </p>
-          </div>
-          <div className="rounded-[16px] border border-black/10 p-5 bg-white">
-            <h3 className="font-bold text-base text-black">
-              How should I wash and care for this garment?
-            </h3>
-            <p className="mt-2 text-sm text-black/60 leading-relaxed">
-              Machine wash cold inside-out with like colors. Hang dry or tumble
-              dry low. Do not iron directly on the graphic print.
-            </p>
-          </div>
         </div>
       )}
 
       {/* 4. "YOU MIGHT ALSO LIKE" Section */}
-      <section className="mt-14 sm:mt-24">
+      {related.length > 0 && <section className="mt-14 sm:mt-24">
         <h2 className="text-center font-black text-[32px] sm:text-5xl lg:text-[48px] leading-[36px] sm:leading-tight tracking-tighter text-black uppercase font-sans mb-8 sm:mb-14">
           YOU MIGHT <br className="sm:hidden" />
           ALSO LIKE
         </h2>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
-          {activeRelated.slice(0, 4).map((prod) => (
+          {related.slice(0, 4).map((prod) => (
             <ProductCard key={prod.id} product={prod} />
           ))}
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

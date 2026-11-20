@@ -12,6 +12,8 @@ export interface ProductVariant {
   name: string;
   sku: string;
   price: number;
+  originalPrice?: number;
+  isDefault?: boolean;
   salePrice?: number;
   stock: number;
   attributes: Record<string, string>; // e.g., { color: 'Blue', size: 'M' }
@@ -37,6 +39,7 @@ export interface Product {
   colors?: { name: string; hex: string }[];
   sizes?: string[];
   variants?: ProductVariant[];
+  variantLabel?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +50,8 @@ export interface CartItem {
   product: Product;
   quantity: number;
   variantId?: string;
+  sku?: string;
+  conflict?: string;
   selectedAttributes?: Record<string, string>;
   price: number;
 }

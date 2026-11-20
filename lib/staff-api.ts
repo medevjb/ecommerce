@@ -25,6 +25,7 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number,
     public readonly fields: Record<string, string[]> = {},
+    public readonly code?: string,
   ) {
     super(message);
   }
@@ -36,14 +37,17 @@ export async function backend<T>(
   options: { method?: string; body?: unknown; token?: string | null; signal?: AbortSignal; idempotency?: string } = {},
 ): Promise<{ data: T; meta: Envelope<T>["meta"] }> {
   const { method = "GET", body, token, signal, idempotency } = options;
-  const proxied = path.startsWith("/api/staff/");
+  const staffProxy = path.startsWith("/api/staff/");
+  const commerceProxy = path.startsWith("/api/commerce/");
+  const proxied = staffProxy || commerceProxy || path.startsWith("/api/auth/");
   const response = await fetch(proxied ? path : apiBase + path, {
     method,
     cache: "no-store",
     signal,
     headers: {
       Accept: "application/json",
-      ...(proxied && method !== "GET" ? { "X-Staff-Request": "1" } : {}),
+      ...(staffProxy && method !== "GET" ? { "X-Staff-Request": "1" } : {}),
+      ...(commerceProxy && method !== "GET" ? { "X-Commerce-Request": "1" } : {}),
       ...(body !== undefined && !(body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: "Bearer " + token } : {}),
       ...(idempotency ? { "Idempotency-Key": idempotency } : {}),
@@ -53,7 +57,7 @@ export async function backend<T>(
   if (response.status === 204) return { data: undefined as T, meta: null };
   const result: Envelope<T> | null = await response.json().catch(() => null);
   if (!response.ok || !result) {
-    throw new ApiError(result?.message ?? "The API could not complete this request.", response.status, result?.errors?.fields);
+    throw new ApiError(result?.message ?? "The API could not complete this request.", response.status, result?.errors?.fields, result?.errors?.code);
   }
   return result;
 }

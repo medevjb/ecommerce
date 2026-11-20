@@ -1,42 +1,30 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Folder } from "lucide-react";
-
+import { ArrowUpRight, Layers3 } from "lucide-react";
 import { Suspense } from "react";
 import { catalog, flattenCategories, type CatalogCategory } from "@/lib/catalog";
 
 export default function CategoriesPage() {
-  return <Suspense fallback={<p className="p-8" role="status">Loading categories…</p>}><CategoryList /></Suspense>;
+  return <main className="mx-auto max-w-[1440px] space-y-8 px-5 py-10 sm:px-10">
+    <header className="rounded-3xl bg-[#f1efec] px-6 py-8 sm:px-10 sm:py-12">
+      <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Shop by category</h1>
+    </header>
+    <Suspense fallback={<p role="status" className="text-zinc-600">Loading categories…</p>}><CategoryList /></Suspense>
+  </main>;
 }
 
 async function CategoryList() {
   const categories = flattenCategories(await catalog<CatalogCategory[]>("/categories"));
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          Categories
-        </h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          Browse items by curated collections and departments
-        </p>
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {categories.map((cat) => (
-          <Link
-            key={cat.id}
-            href={`/products?category=${cat.slug}`}
-            className="group rounded-xl border border-zinc-200 bg-white p-6 transition-all hover:border-zinc-400 hover:shadow-xs dark:border-zinc-800 dark:bg-zinc-950"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 transition-colors group-hover:bg-zinc-900 group-hover:text-white dark:bg-zinc-800 dark:text-zinc-300 dark:group-hover:bg-white dark:group-hover:text-zinc-900">
-              <Folder className="h-6 w-6" />
-            </div>
-            <h3 className="mt-4 font-semibold text-zinc-900 group-hover:underline dark:text-white">
-              {cat.name}
-            </h3>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+  if (!categories.length) return <p className="text-zinc-600">No categories are available yet.</p>;
+  return <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+    {categories.map((category) => {
+      const image = category.image_url || category.children?.find((child) => child.image_url)?.image_url;
+      return <Link key={category.id} href={`/products?category=${encodeURIComponent(category.slug)}`} className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white focus-visible:outline-2 focus-visible:outline-offset-2 hover:shadow-md">
+        <div className="relative grid aspect-[4/3] place-items-center overflow-hidden bg-[#f3f1ef]">
+          {image ? <Image src={image} alt="" fill unoptimized sizes="(min-width: 1024px) 25vw, 50vw" className="object-contain p-3 transition-transform group-hover:scale-105" /> : <span className="grid size-14 place-items-center rounded-2xl bg-white text-zinc-700"><Layers3 size={26} aria-hidden /></span>}
+        </div>
+        <div className="flex items-center justify-between gap-2 p-4 sm:p-5"><h2 className="font-semibold">{category.name}</h2><ArrowUpRight aria-hidden size={17} className="shrink-0 text-zinc-500" /></div>
+      </Link>;
+    })}
+  </div>;
 }

@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { BadgeCheck, Globe2, KeyRound, Mail, Search, ShieldCheck, UserRound } from "lucide-react";
 import { ApiError, human, staffRequest, type Staff } from "@/lib/staff-api";
+import { ImageUploadField, imageSelection, uploadImage } from "./image-upload-field";
 import type { Action } from "@/lib/admin-workspace";
 
 const panel = "rounded-2xl border border-[#ebe8f2] bg-white p-5 shadow-sm shadow-violet-950/5 md:p-6";
@@ -108,17 +109,26 @@ export function SiteSettings({ settings, editable }: { settings: SiteValues; edi
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string }>();
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [imageChanged, setImageChanged] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0);
+  const imageKeys = ["logo_url","image_fallback_url"];
   const fields = settingsGroups.flatMap((group) => group.fields.map(([key]) => key));
-  const changed = fields.some((key) => (saved[key] ?? "") !== (values[key] ?? ""));
+  const changed = imageChanged || fields.some((key) => (saved[key] ?? "") !== (values[key] ?? ""));
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editable || busy || !changed) return;
+    const form = new FormData(event.currentTarget);
     setBusy(true); setStatus(undefined); setErrors({});
     try {
       const data = Object.fromEntries(fields.map((key) => [key, values[key]?.trim() || null]));
+      for (const key of imageKeys) {
+        const selected = imageSelection(form,key);
+        if (selected instanceof File) data[key] = await uploadImage("content",selected);
+        else if (selected === null) data[key] = null;
+      }
       const result = await staffRequest<{ data: SiteValues }>("/site-settings", { method: "PATCH", body: { data } });
-      setSaved(result.data.data); setValues(result.data.data);
+      setSaved(result.data.data); setValues(result.data.data); setImageChanged(false); setImageVersion((version)=>version+1);
       setStatus({ ok: true, text: "Site settings saved." });
     } catch (error) {
       if (error instanceof ApiError) setErrors(error.fields);
@@ -135,6 +145,7 @@ export function SiteSettings({ settings, editable }: { settings: SiteValues; edi
       {settingsGroups.map(({ title, description, icon: Icon, fields }) => <section className={panel} key={title}>
         <CardHeading icon={<Icon size={20} />} title={title} description={description} />
         <div className="grid gap-4 sm:grid-cols-2">{fields.map(([key,label]) => {
+          if (imageKeys.includes(key)) return <ImageUploadField key={key+imageVersion} name={key} label={label} url={values[key]} readOnly={!editable} onChange={()=>setImageChanged(true)} error={errors["data."+key]?.[0]} />;
           const multiline = key.endsWith("_copy") || key.endsWith("_description");
           const attributes = {
             name: key, value: values[key] ?? "", readOnly: !editable, className: field,
@@ -155,7 +166,7 @@ export function SiteSettings({ settings, editable }: { settings: SiteValues; edi
       </section>)}
       {editable && <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ebe8f2] bg-white p-4 shadow-sm">
         <div className="text-sm">{status ? <p role={status.ok ? "status" : "alert"} className={status.ok ? "text-emerald-800" : "text-red-800"}>{status.text}</p> : <p className="text-slate-600">{changed ? "You have unsaved changes." : "All changes saved."}</p>}</div>
-        <div className="flex gap-2"><button type="button" className={secondary} disabled={!changed || busy} onClick={() => { setValues(saved); setStatus(undefined); setErrors({}); }}>Discard</button><button className={primary} disabled={!changed || busy}>{busy ? "Saving…" : "Save settings"}</button></div>
+        <div className="flex gap-2"><button type="button" className={secondary} disabled={!changed || busy} onClick={() => { setValues(saved); setStatus(undefined); setErrors({}); setImageChanged(false); setImageVersion((version)=>version+1); }}>Discard</button><button className={primary} disabled={!changed || busy}>{busy ? "Saving…" : "Save settings"}</button></div>
       </div>}
     </div>
     <aside className={`${panel} xl:sticky xl:top-28`}><CardHeading icon={<UserRound size={20} />} title="Storefront preview" description="Preview your store name and search copy." />

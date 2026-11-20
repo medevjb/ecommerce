@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/context/auth-context";
 import { backend, human, money } from "@/lib/staff-api";
 
-export const customer = <T,>(path:string, options?: Parameters<typeof backend<T>>[1]) => backend<T>(path,{ ...options, token:typeof window === "undefined" ? null : localStorage.getItem("auth_token") });
+export const customer = <T,>(path:string, options?: Parameters<typeof backend<T>>[1]) => backend<T>("/api/commerce"+path,{ ...options, token:typeof window === "undefined" ? null : localStorage.getItem("auth_token") });
 const box="rounded-2xl border border-zinc-200 bg-white p-5";
 const field="mt-1 block w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm";
 const action="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50";
@@ -15,7 +15,12 @@ const message=(error:unknown)=>error instanceof Error ? error.message : "The req
 export function CustomerGuard({children}:{children:ReactNode}) {
   const {user,isLoading}=useAuth();
   const router=useRouter();
-  useEffect(()=>{ if(!isLoading&&!user)router.replace("/login"); },[user,isLoading,router]);
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace(pathname === "/checkout" ? "/login?next=checkout" : "/login");
+    }
+  }, [user, isLoading, pathname, router]);
   return user&&!isLoading ? children : <p role="status" className="p-6">Opening your account…</p>;
 }
 
