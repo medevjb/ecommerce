@@ -1,8 +1,9 @@
 const allowed: Record<string, RegExp> = {
-  GET: /^\/(?:cart|me(?:\/addresses)?|orders(?:\/[a-z0-9]+)?)$/i,
-  POST: /^\/(?:cart\/(?:items|coupon|merge)|checkout(?:\/preview)?|me\/addresses|auth\/(?:logout|change-password))$/,
-  PATCH: /^\/(?:cart\/items\/[a-z0-9]+|me(?:\/addresses\/[a-z0-9]+)?)$/i,
-  DELETE: /^\/(?:cart\/(?:items(?:\/[a-z0-9]+)?|coupon)|me\/addresses\/[a-z0-9]+)$/i,
+  GET: /^\/(?:cart|me(?:\/addresses|\/wishlist(?:\/[a-z0-9]+)?|\/product-reviews\/[a-z0-9-]+)?|orders(?:\/[a-z0-9]+)?)$/i,
+  POST: /^\/(?:cart\/(?:items|coupon|merge)|checkout(?:\/preview)?|me\/addresses|orders\/[a-z0-9]+\/cancel|products\/[a-z0-9-]+\/reviews|newsletter\/(?:subscribe|unsubscribe)|auth\/(?:logout|change-password))$/i,
+  PATCH: /^\/(?:cart\/items\/[a-z0-9]+|me(?:\/(?:addresses|reviews)\/[a-z0-9]+)?)$/i,
+  PUT: /^\/me\/wishlist\/[a-z0-9]+$/i,
+  DELETE: /^\/(?:cart\/(?:items(?:\/[a-z0-9]+)?|coupon)|me\/(?:addresses|reviews|wishlist)\/[a-z0-9]+)$/i,
 };
 
 async function forward(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
@@ -48,4 +49,4 @@ async function forward(request: Request, { params }: { params: Promise<{ path: s
   }
 }
 
-export { forward as GET, forward as POST, forward as PATCH, forward as DELETE };
+export { forward as GET, forward as POST, forward as PATCH, forward as PUT, forward as DELETE };

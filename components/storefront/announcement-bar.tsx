@@ -4,22 +4,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 
-export function AnnouncementBar() {
+export type Announcement = { title?: string; body?: string; link_url?: string; link_label?: string };
+
+export function AnnouncementBar({ announcement }: { announcement?: Announcement }) {
   const [isVisible, setIsVisible] = useState(true);
 
-  if (!isVisible) return null;
+  if (!isVisible || !announcement) return null;
 
   return (
     <div className="relative bg-black px-4 py-2 sm:py-2.5 text-center text-[12px] sm:text-sm text-white">
       <div className="mx-auto flex max-w-[1440px] items-center justify-center pr-6 sm:pr-0">
         <p className="font-normal text-zinc-200 leading-snug">
-          Sign up and get 20% off to your first order.{" "}
-          <Link
-            href="/register"
-            className="font-medium text-white underline decoration-white underline-offset-4 hover:text-zinc-300 transition-colors ml-1 inline-block"
-          >
-            Sign Up Now
-          </Link>
+          {announcement.title}{announcement.body && <> {announcement.body}</>}
+          {announcement.link_url && <Link href={announcement.link_url} className="ml-2 font-medium underline underline-offset-4">
+            {announcement.link_label ?? "Learn more"}
+          </Link>}
         </p>
       </div>
       <button

@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { ApiError, staffRequest, type Staff } from "@/lib/staff-api";
+import { customerReturnPath, customerReturnQuery } from "@/lib/customer-return";
 import { useAuth } from "@/context/auth-context";
 
 type LoginResult = {
   dashboard?: "staff" | "customer";
+  email_verification_required?: boolean;
+  email?: string;
   access_token?: string;
   challenge_token?: string;
   user?: Staff;
@@ -17,12 +20,20 @@ type LoginResult = {
 const input = "w-full rounded-xl border border-zinc-400 bg-white px-4 py-3 text-sm text-zinc-950 placeholder:text-zinc-600 focus:outline-2 focus:outline-offset-2 focus:outline-violet-700";
 
 export default function LoginPage() {
+  return <Suspense fallback={<p role="status">Loading sign-in…</p>}><LoginForm /></Suspense>;
+}
+
+function LoginForm() {
   const [challenge, setChallenge] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
   const router = useRouter();
+  const query = useSearchParams();
+  const returnQuery = customerReturnQuery(query);
+  const returnParams = new URLSearchParams(returnQuery);
+  const registerHref = returnParams.size ? "/register?" + returnParams.toString() : "/register";
   const { acceptSession } = useAuth();
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -38,6 +49,11 @@ export default function LoginPage() {
           ? { challenge_token: challenge, code: String(form.get("code")).trim() }
           : { email: form.get("email"), password: form.get("password") },
       });
+      if (data.email_verification_required && data.email) {
+        const params = new URLSearchParams({ ...returnQuery, email: data.email });
+        router.replace(`/verify-email?${params.toString()}`);
+        return;
+      }
       if (data.challenge_token) {
         setChallenge(data.challenge_token);
         return;
@@ -49,7 +65,7 @@ export default function LoginPage() {
         if (!data.access_token) throw new Error("The customer session could not be started.");
         localStorage.setItem("auth_token", data.access_token);
         acceptSession({ ...data.user, role: "customer" });
-        router.replace(new URLSearchParams(window.location.search).get("next") === "checkout" ? "/checkout" : "/account");
+        router.replace(customerReturnPath(query));
       }
     } catch (failure) {
       if (failure instanceof ApiError && failure.code === "EMAIL_NOT_VERIFIED") {
@@ -83,10 +99,10 @@ export default function LoginPage() {
           </div>
         </>}
         {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-        {verificationEmail && <Link href={`/verify-email?${new URLSearchParams({ email: verificationEmail }).toString()}`} className="inline-block text-sm font-semibold text-violet-900 underline underline-offset-4">Resend verification email</Link>}
+        {verificationEmail && <Link href={`/verify-email?${new URLSearchParams({ ...returnQuery, email: verificationEmail }).toString()}`} className="inline-block text-sm font-semibold text-violet-900 underline underline-offset-4">Resend verification email</Link>}
         <button disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-60">{busy ? "Signing in…" : challenge ? "Verify code" : "Sign in"}<ArrowRight size={16} /></button>
       </form>
-      {challenge ? <button className="text-sm text-violet-700 underline" onClick={() => { setChallenge(""); setError(""); }}>Use another account</button> : <div className="flex flex-wrap justify-between gap-3 text-sm font-semibold text-violet-900"><Link href="/forgot-password" className="underline underline-offset-4">Forgot password?</Link><Link href="/register" onClick={() => { if (new URLSearchParams(window.location.search).get("next") === "checkout") sessionStorage.setItem("checkout_registration", "1"); }} className="underline underline-offset-4">Create an account</Link></div>}
+      {challenge ? <button className="text-sm text-violet-700 underline" onClick={() => { setChallenge(""); setError(""); }}>Use another account</button> : <div className="flex flex-wrap justify-between gap-3 text-sm font-semibold text-violet-900"><Link href="/forgot-password" className="underline underline-offset-4">Forgot password?</Link><Link href={registerHref} className="underline underline-offset-4">Create an account</Link></div>}
     </section>
   );
 }

@@ -6,10 +6,7 @@ export class CatalogError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 export async function catalog<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(apiBase() + path, { headers: { Accept: "application/json" }, cache: "no-store", signal });
-  if (!response.ok) throw new CatalogError(response.status, "Could not load the store catalog.");
-  const envelope = await response.json() as { data: T };
-  return envelope.data;
+  return (await catalogEnvelope<T>(path, signal)).data;
 }
 
 export type CatalogCategory = Omit<Category,"image"> & { image_url?: string | null; children?: CatalogCategory[] };
@@ -87,8 +84,12 @@ export function flattenCategories(categories: CatalogCategory[]): CatalogCategor
   return categories.flatMap((category) => [category, ...flattenCategories(category.children ?? [])]);
 }
 
-export async function catalogPage(path: string, signal?: AbortSignal) {
+export async function catalogEnvelope<T>(path: string, signal?: AbortSignal) {
   const response = await fetch(apiBase() + path, { headers: { Accept: "application/json" }, cache: "no-store", signal });
-  if (!response.ok) throw new CatalogError(response.status, "Could not load products.");
-  return response.json() as Promise<{ data: CatalogProduct[]; meta: { pagination?: import("./staff-api").PageInfo } | null }>;
+  if (!response.ok) throw new CatalogError(response.status, "Could not load the store catalog.");
+  return response.json() as Promise<{ data: T; meta: { pagination?: import("./staff-api").PageInfo } | null }>;
+}
+
+export function catalogPage(path: string, signal?: AbortSignal) {
+  return catalogEnvelope<CatalogProduct[]>(path, signal);
 }

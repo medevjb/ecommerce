@@ -3049,5 +3049,29 @@
         "required": true
       }
     ]
+  },
+  "listOrderNotes": {
+    "path": "/orders/{order}/notes",
+    "method": "GET",
+    "permission": "orders.note",
+    "requires": [
+      "orders.view"
+    ]
+  },
+  "createOrderNote": {
+    "path": "/orders/{order}/notes",
+    "method": "POST",
+    "permission": "orders.note",
+    "requires": [
+      "orders.view"
+    ],
+    "fields": [
+      {
+        "name": "body",
+        "label": "Internal note",
+        "kind": "text",
+        "required": true
+      }
+    ]
   }
 }

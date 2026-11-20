@@ -64,11 +64,28 @@ function bind(path: string, parent: string, id = "") {
   });
 }
 
-function actionVisible(key: string, row: Row) {
+const catalogBulkPermissions: Record<string, string> = {
+  bulkProducts: "products", bulkCategory: "categories", bulkBrand: "brands",
+  bulkAttribute: "attributes", bulkAttributeValue: "attributes",
+};
+
+function permittedBulkOptions(staff: Staff | null, operation: string) {
+  const prefix = catalogBulkPermissions[operation];
+  return apiOperations[operation]?.fields?.find(({name}) => name === "action")?.options?.filter((option) => {
+    if (!prefix) return true;
+    const action = option === "delete" || option === "restore" ? "delete" : "update";
+    return staff?.permissions.includes(prefix + "." + action);
+  });
+}
+
+function actionVisible(staff: Staff | null, key: string, row: Row) {
   if (key.startsWith("restore")) return Boolean(row.deleted_at);
   if (row.deleted_at) return false;
   if (key === "transitionOrder") return ["paid", "processing", "shipped"].includes(String(row.status)) && row.payment_status !== "refunded";
-  if (key === "cancelAdminOrder") return ["pending", "paid", "processing"].includes(String(row.status));
+  if (key === "cancelAdminOrder") {
+    return ["pending", "paid", "processing"].includes(String(row.status))
+      && (Number(row.captured_amount) === 0 || permitted(staff, "requestOrderRefund"));
+  }
   if (key === "requestOrderRefund") return ["succeeded", "partially_refunded", "payment_exception"].includes(String(row.payment_status));
   if (key === "deleteRole" || key === "updateRole" || key === "replaceRolePermissions") return row.slug !== "super-admin";
   return true;
@@ -79,7 +96,7 @@ export default function AdminModule({ initialSection }: { initialSection?: strin
   const [, , root, parent, child] = pathname.split("/");
   const sectionKey = child || initialSection || root;
   const section = sections[sectionKey];
-  if (!section) return <div className="rounded-2xl bg-white p-8"><h1 className="text-2xl font-semibold">Workspace page unavailable</h1><Link href="/admin" className="mt-4 inline-block text-violet-700">Return to overview</Link></div>;
+  if (!section || (child && !sections[root]?.children?.includes(child))) return <div className="rounded-2xl bg-white p-8"><h1 className="text-2xl font-semibold">Workspace page unavailable</h1><Link href="/admin" className="mt-4 inline-block text-violet-700">Return to overview</Link></div>;
   return <Module key={pathname} section={section} sectionKey={sectionKey} parent={child ? parent : ""} root={root} openCreate={root === "products" && parent === "new"} />;
 }
 
@@ -115,9 +132,10 @@ function Module({ section, sectionKey, parent, root, openCreate }: {section:Sect
   const dedicatedSettings = sectionKey === "settings" || sectionKey === "site-settings";
   const rows = (Array.isArray(result) ? result : record(result).items ?? record(result).daily ?? record(result).rows ?? []) as unknown[];
   const columns = sectionKey === "sales" && Array.isArray(record(result).items) ? ["name","units","gross_merchandise_amount"] : section.columns ?? [];
-  const collectable = (section.actions ?? []).some(([key]) => permitted(staff,key) && apiOperations[key].fields?.some((field) => field.name === "ids"));
+  const canOpen = ([key]: Action) => permitted(staff, key)
+    && (!catalogBulkPermissions[key] || Boolean(permittedBulkOptions(staff, key)?.length));
+  const collectable = (section.actions ?? []).some((item) => canOpen(item) && apiOperations[item[0]].fields?.some((field) => field.name === "ids"));
   const filtersAvailable = operation.filters ?? [];
-  const canOpen = (item: Action) => permitted(staff, item[0]);
 
   return <div className="space-y-6">
     {parent && <Link href={`/admin/${root}`} className="inline-flex items-center gap-2 text-sm font-semibold text-violet-700"><ArrowLeft size={16} /> Back to {sections[root]?.title || "records"}</Link>}
@@ -156,7 +174,7 @@ function Module({ section, sectionKey, parent, root, openCreate }: {section:Sect
         <tbody>{rows.map((item,index) => {
           const row = sectionKey === "permissions" ? permissionRecord(item) : record(item);
           const id = rowId(row, sectionKey);
-          const actions = (section.row ?? []).filter(([key]) => canOpen([key,""]) && actionVisible(key,row));
+          const actions = (section.row ?? []).filter(([key]) => canOpen([key,""]) && actionVisible(staff,key,row));
           const children = section.children?.filter((key) => permitted(staff,sections[key].list));
           return <tr key={id || String(row.date ?? index)} className="border-t border-[#f0edf5] hover:bg-[#fcfaff]">
             {collectable && <td className="p-3 text-center"><input type="checkbox" aria-label={`Select ${row.name ?? row.code ?? row.title ?? "record " + (index + 1)}`} checked={selected.includes(id)} onChange={(event) => setSelected((items) => event.target.checked ? [...items,id] : items.filter((value) => value !== id))} className="size-4 accent-violet-700" /></td>}
@@ -236,24 +254,39 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
     });
     return () => controller.abort();
   }, [operation, task.inspect]);
-  const fields = operation?.fields ?? [];
+  const fields = (operation?.fields ?? []).map((field) => catalogBulkPermissions[operationKey] && field.name === "action"
+    ? {...field, options: permittedBulkOptions(staff, operationKey)} : field);
   const destructive = operation?.method === "DELETE" || operationKey === "cancelAdminOrder" || operationKey === "requestOrderRefund";
   const targetName = renderValue(record(base).number ?? record(base).name ?? record(base).key ?? record(base).title ?? record(base).sku ?? record(base).code, "name");
   const createdProductId = operationKey === "createProduct" && submitted && permitted(staff, "createProductVariant") ? String(record(response).id ?? "") : "";
   const variantProductId = operationKey === "createProductVariant" ? parent : createdProductId;
+  const bulkFinished = Array.isArray(record(response).failed);
   const showResponse = submitted && (operationKey.includes("TwoFactor") || operationKey === "replaceStaffRecoveryCodes");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || loading || !operation) return;
+    if (busy || loading || !operation || bulkFinished) return;
     setError(""); setFieldErrors({}); setBusy(true);
     try {
       const form = new FormData(event.currentTarget);
       const body = await buildBody(operation,form,base,imageScope(sectionKey,operation.method));
+      if (catalogBulkPermissions[operationKey] && !permittedBulkOptions(staff, operationKey)?.includes(String(record(body).action))) {
+        setError("Your role cannot perform the selected action.");
+        return;
+      }
       if (operationKey === "createProduct") setQueuedProductImages(0);
       if (operation.idempotent) idempotency.current ??= crypto.randomUUID();
       const { data } = await staffRequest(bind(operation.path,parent,id), {method:operation.method,body,idempotency:idempotency.current});
       setResponse(data);
+      const failures = record(data).failed;
+      if (Array.isArray(failures) && failures.length) {
+        const succeeded = Number(record(record(data).counts).succeeded ?? 0);
+        onSaved(succeeded > 0 ? succeeded + " records updated." : "");
+        setError(failures.length + " records could not be updated. "
+          + failures.map((failure) => String(record(failure).id) + " · " + human(String(record(failure).code))).join("; "));
+        setSubmitted(true);
+        return;
+      }
       if (operationKey !== "createProduct") setSubmitted(true);
       onSaved(`${label} completed.`);
       if (operationKey === "createProduct" && permitted(staff, "createProductVariant") && record(data).id) {
@@ -307,7 +340,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
           Product photos <span className="font-normal text-zinc-500">(optional)</span>
           <input type="file" multiple name="draft_images" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-1.5 file:text-violet-900" />
         </label>}
-        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={() => ref.current?.close()}>Cancel</button><button type="submit" disabled={busy} className={primary}>{busy ? "Saving…" : destructive ? "Confirm action" : operationKey === "createProduct" ? "Save draft" : "Save changes"}</button></div>
+        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={() => ref.current?.close()}>Cancel</button><button type="submit" disabled={busy || bulkFinished} className={primary}>{busy ? "Saving…" : destructive ? "Confirm action" : operationKey === "createProduct" ? "Save draft" : "Save changes"}</button></div>
       </form>}
     </div>
   </dialog>;
@@ -334,7 +367,7 @@ function FormField({field,value,errors,choices}: {field:Field;value:unknown;erro
   const linkedValues = Array.isArray(value) ? value.map((item) => String(typeof item === "object" ? record(item).slug ?? record(item).id : item)) : typeof value === "string" ? [value] : [];
   const linkedOptions = [...(choices ?? []), ...linkedValues.filter((key) => !choices?.some((item) => item.key === key)).map((key) => ({key,label:key}))];
   const text = value === undefined || value === null ? "" : String(value);
-  const isTextArea = kind === "json" || kind === "list" || /description|copy|quote|reason|\.body$/.test(name);
+  const isTextArea = kind === "json" || kind === "list" || /description|copy|quote|reason|(^|\.)body$/.test(name);
   if (choices?.length && kind === "list") return <fieldset className="space-y-2 sm:col-span-2">
     <legend className="text-sm font-semibold text-[#574b72]">{label}</legend>
     <div className="grid max-h-52 gap-1 overflow-y-auto rounded-xl border border-[#ded8ec] p-3 sm:grid-cols-2">

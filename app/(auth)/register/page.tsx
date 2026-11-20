@@ -1,16 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, UserRound } from "lucide-react";
 import { ApiError, backend } from "@/lib/staff-api";
+import { customerReturnQuery } from "@/lib/customer-return";
 import { useToast } from "@/context/toast-context";
 
 const input = "w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-950 placeholder:text-zinc-500 outline-none transition focus:border-violet-700 focus:ring-2 focus:ring-violet-700/15";
 
 export default function RegisterPage() {
+  return <Suspense fallback={<p role="status">Loading registration…</p>}><RegisterForm /></Suspense>;
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const returnQuery = customerReturnQuery(useSearchParams());
+  const returnParams = new URLSearchParams(returnQuery);
+  const loginHref = returnParams.size ? "/login?" + returnParams.toString() : "/login";
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -32,10 +40,7 @@ export default function RegisterPage() {
         name: [form.get("first_name"), form.get("last_name")].join(" ").trim(),
         email: form.get("email"), password, password_confirmation: confirmation,
       } });
-      const resumeCheckout = sessionStorage.getItem("checkout_registration") === "1";
-      sessionStorage.removeItem("checkout_registration");
-      const verificationParams = new URLSearchParams({ email: String(form.get("email") ?? "") });
-      if (resumeCheckout) verificationParams.set("next", "checkout");
+      const verificationParams = new URLSearchParams({ ...returnQuery, email: String(form.get("email") ?? "") });
       router.replace(`/verify-email?${verificationParams.toString()}`);
     } catch (failure) {
       if (failure instanceof ApiError && Object.keys(failure.fields).length > 0) {
@@ -77,7 +82,7 @@ export default function RegisterPage() {
         </div>
         <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-950 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 disabled:cursor-not-allowed disabled:opacity-60">{isLoading ? "Creating your account…" : "Create account"}<ArrowRight size={16} /></button>
       </form>
-      <p className="border-t border-zinc-200 pt-5 text-center text-sm text-zinc-600">Already have an account? <Link href="/login" className="font-semibold text-violet-900 underline-offset-4 hover:underline">Sign in</Link></p>
+      <p className="border-t border-zinc-200 pt-5 text-center text-sm text-zinc-600">Already have an account? <Link href={loginHref} className="font-semibold text-violet-900 underline-offset-4 hover:underline">Sign in</Link></p>
     </section>
   );
 }

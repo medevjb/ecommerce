@@ -13,7 +13,9 @@ const StaffProfileUpdate = createContext<(profile: Staff) => void>(() => {});
 export const useStaffProfileUpdate = () => useContext(StaffProfileUpdate);
 export const permitted = (staff: Staff | null, operation: string) => {
   const declaration = apiOperations[operation];
-  return Boolean(staff && declaration && (!declaration.permission || staff.permissions.includes(declaration.permission)));
+  return Boolean(staff && declaration
+    && (!declaration.permission || staff.permissions.includes(declaration.permission))
+    && (declaration.requires ?? []).every((permission) => staff.permissions.includes(permission)));
 };
 
 const navIcons = { orders: ClipboardList, products: Package, inventory: Box, sales: BarChart3, settings: Settings };

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "@/context/auth-context";
-import { backend, human, money } from "@/lib/staff-api";
+import { backend, human, money, type PageInfo } from "@/lib/staff-api";
 
 export const customer = <T,>(path:string, options?: Parameters<typeof backend<T>>[1]) => backend<T>("/api/commerce"+path,{ ...options, token:typeof window === "undefined" ? null : localStorage.getItem("auth_token") });
 const box="rounded-2xl border border-zinc-200 bg-white p-5";
@@ -18,7 +18,7 @@ export function CustomerGuard({children}:{children:ReactNode}) {
   const pathname = usePathname();
   useEffect(() => {
     if (!isLoading && !user) {
-      router.replace(pathname === "/checkout" ? "/login?next=checkout" : "/login");
+      router.replace(pathname === "/checkout" ? "/login?next=checkout" : pathname === "/wishlist" ? "/login?next=wishlist" : "/login");
     }
   }, [user, isLoading, pathname, router]);
   return user&&!isLoading ? children : <p role="status" className="p-6">Opening your account…</p>;
@@ -100,16 +100,87 @@ export function CustomerAddresses() {
   </div>;
 }
 
-type Order={id:string;number:string;status:string;payment_status:string;total_amount:number;created_at:string;tracking_number?:string;shipping_carrier?:string;items?:{sku:string;product_name:string;quantity:number;line_amount:number}[]};
-export function CustomerOrders(){
-  const [orders,setOrders]=useState<Order[]>();
-  const [detail,setDetail]=useState<Order>();
-  const [error,setError]=useState("");
-  useEffect(()=>{const controller=new AbortController();customer<Order[]>("/orders",{signal:controller.signal}).then(({data})=>setOrders(data)).catch(failure=>{if(!controller.signal.aborted)setError(message(failure));});return()=>controller.abort();},[]);
-  async function load(id:string){try{setError("");setDetail((await customer<Order>("/orders/"+id)).data);}catch(failure){setError(message(failure));}}
-  return <div className="space-y-4"><h2 className="text-2xl font-bold">Orders and tracking</h2>{error&&<p role="alert" className="text-red-800">{error}</p>}
-  {!orders&&!error&&<p role="status">Loading orders…</p>}{orders?.length===0&&<p>You have no orders yet.</p>}
-  {orders?.map(order=><article className={box} key={order.id}><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold">{order.number}</p><p className="text-sm text-zinc-600">{human(order.status)} · {money(order.total_amount)}</p></div><button className="text-sm underline" onClick={()=>detail?.id===order.id?setDetail(undefined):void load(order.id)}>{detail?.id===order.id?"Hide details":"View order"}</button></div>
-    {detail?.id===order.id&&<div className="mt-4 border-t pt-3 text-sm"><p>Payment {human(detail.payment_status)}</p>{detail.tracking_number&&<p>{detail.shipping_carrier} {detail.tracking_number}</p>}<ul className="mt-2 space-y-1">{detail.items?.map(item=><li key={item.sku}>{item.product_name} × {item.quantity} · {money(item.line_amount)}</li>)}</ul></div>}
-  </article>)}</div>;
+type Order = {
+  id: string; number: string; status: string; payment_status: string; total_amount: number;
+  tracking_number?: string; shipping_carrier?: string;
+  items?: {sku:string;product_name:string;quantity:number;line_amount:number}[];
+};
+
+export function CustomerOrders() {
+  const [orders, setOrders] = useState<Order[]>();
+  const [pagination, setPagination] = useState<PageInfo>();
+  const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState<Order>();
+  const [pending, setPending] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    customer<Order[]>("/orders?page=" + page, {signal:controller.signal})
+      .then(({data,meta}) => {
+        if (controller.signal.aborted) return;
+        setOrders(data);
+        setPagination(meta?.pagination);
+      })
+      .catch((failure: unknown) => { if (!controller.signal.aborted) setError(message(failure)); });
+    return () => controller.abort();
+  }, [page]);
+
+  async function load(id: string) {
+    if (detail?.id === id) { setDetail(undefined); return; }
+    setPending(id);
+    setError("");
+    try { setDetail((await customer<Order>("/orders/" + encodeURIComponent(id))).data); }
+    catch (failure) { setError(message(failure)); }
+    finally { setPending(""); }
+  }
+
+  async function cancel(order: Order) {
+    if (!window.confirm("Cancel order " + order.number + "?")) return;
+    setPending(order.id);
+    setError("");
+    setNotice("");
+    try {
+      const {data} = await customer<Order>("/orders/" + encodeURIComponent(order.id) + "/cancel", {method:"POST"});
+      setOrders((previous) => previous?.map((item) => item.id === data.id ? data : item));
+      setDetail((current) => current?.id === data.id ? {...current, ...data} : current);
+      setNotice("Order " + data.number + " was cancelled.");
+    } catch (failure) { setError(message(failure)); }
+    finally { setPending(""); }
+  }
+
+  function changePage(next: number) {
+    setError("");
+    setOrders(undefined);
+    setDetail(undefined);
+    setPage(next);
+  }
+
+  return <div className="space-y-4">
+    <h2 className="text-2xl font-bold">Orders and tracking</h2>
+    {error && <p role="alert" className="text-red-800">{error}</p>}
+    {notice && <p role="status" className="text-green-800">{notice}</p>}
+    {!orders && !error && <p role="status">Loading orders…</p>}
+    {orders?.length === 0 && <p>You have no orders yet.</p>}
+    {orders?.map((order) => <article className={box} key={order.id}>
+      <div className="flex flex-wrap justify-between gap-3">
+        <div><p className="font-semibold">{order.number}</p><p className="text-sm text-zinc-600">{human(order.status)} · {money(order.total_amount)}</p></div>
+        <div className="flex gap-3">
+          <button className="text-sm underline" disabled={Boolean(pending)} onClick={() => load(order.id)}>{detail?.id === order.id ? "Hide details" : "View order"}</button>
+          {order.status === "pending" && order.payment_status === "pending" && <button className="text-sm text-red-800 underline" disabled={Boolean(pending)} onClick={() => cancel(order)}>Cancel unpaid order</button>}
+        </div>
+      </div>
+      {detail?.id === order.id && <div className="mt-4 border-t pt-3 text-sm">
+        <p>Payment {human(detail.payment_status)}</p>
+        {detail.tracking_number && <p>{detail.shipping_carrier} {detail.tracking_number}</p>}
+        <ul className="mt-2 space-y-1">{detail.items?.map((item) => <li key={item.sku}>{item.product_name} × {item.quantity} · {money(item.line_amount)}</li>)}</ul>
+      </div>}
+    </article>)}
+    {pagination && pagination.last_page > 1 && <nav aria-label="Order history pages" className="flex items-center gap-3 text-sm">
+      <button className="underline disabled:opacity-45" disabled={page <= 1 || Boolean(pending)} onClick={() => changePage(page - 1)}>Previous</button>
+      <span>Page {page} of {pagination.last_page}</span>
+      <button className="underline disabled:opacity-45" disabled={page >= pagination.last_page || Boolean(pending)} onClick={() => changePage(page + 1)}>Next</button>
+    </nav>}
+  </div>;
 }

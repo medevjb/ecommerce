@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Heart,
   Search,
   ShoppingCart,
   User,
@@ -83,6 +84,7 @@ export function StorefrontHeader({brand="SHOP.CO",links=[]}:{brand?:string;links
           </button>
 
           {/* Cart Icon */}
+          <Link href="/wishlist" aria-label="Wishlist" className="shrink-0 text-black"><Heart className="size-5" /></Link>
           <Link
             href="/cart"
             className="relative p-1 text-black hover:text-zinc-600 transition-colors"

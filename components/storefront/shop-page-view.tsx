@@ -22,6 +22,7 @@ import {
   swatch,
   type CatalogAttribute,
   type CatalogCategory,
+  type CatalogOption,
 } from "@/lib/catalog";
 import type { Product } from "@/types";
 import type { PageInfo } from "@/lib/staff-api";
@@ -43,7 +44,8 @@ export function ShopPageView() {
 function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
   const collection = query.get("collection");
   const search = query.get("q")?.trim();
-  const brand = query.get("brand");
+  const [selectedBrand, setSelectedBrand] = useState(query.get("brand") ?? "");
+  const [stockOnly, setStockOnly] = useState(query.get("in_stock") === "1");
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     query.get("category")
@@ -74,6 +76,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
+  const [brands, setBrands] = useState<CatalogOption[]>([]);
   const [styles, setStyles] = useState<CatalogCategory[]>([]);
   const [filterError, setFilterError] = useState("");
   const [attributes, setAttributes] = useState<CatalogAttribute[]>([]);
@@ -84,6 +87,8 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
     size: "",
     category: query.get("category"),
     dressStyle: query.get("style") || "",
+    brand: query.get("brand") ?? "",
+    stock: query.get("in_stock") === "1",
   });
 
   useEffect(() => {
@@ -91,8 +96,10 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
     Promise.all([
       catalog<CatalogCategory[]>("/categories", controller.signal),
       catalog<CatalogAttribute[]>("/attributes", controller.signal),
+      catalog<CatalogOption[]>("/brands", controller.signal),
     ])
-      .then(([groups, options]) => {
+      .then(([groups, options, availableBrands]) => {
+        setBrands(availableBrands);
         setCategories(flattenCategories(groups.filter((group) => group.slug !== "dress-styles")));
         setStyles(flattenCategories(groups.find((group) => group.slug === "dress-styles")?.children ?? []));
         setAttributes(options);
@@ -121,7 +128,8 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
     if (applied.category) params.set("category", applied.category);
     if (applied.min > 0) params.set("min_price", String(applied.min * 100));
     if (applied.max < 300) params.set("max_price", String(applied.max * 100));
-    if (brand) params.set("brand", brand);
+    if (applied.brand) params.set("brand", applied.brand);
+    if (applied.stock) params.set("in_stock", "1");
     if (search) params.set("search", search);
     if (applied.dressStyle) params.set("style", applied.dressStyle);
     for (const option of [applied.color, applied.size]) if (option) params.append("attribute_value_ids[]",option);
@@ -140,7 +148,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [applied, brand, currentPage, retry, search, sortBy]);
+  }, [applied, currentPage, retry, search, sortBy]);
 
   const displayCategories = categories;
   const colors = (attributes.find(({slug}) => slug === "color")?.values ?? [])
@@ -197,6 +205,18 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
             </button>
           );
         })}
+      </div>
+
+      <div className="space-y-3 border-b border-black/10 pb-5">
+        <label className="block text-sm font-semibold">
+          Brand
+          <select className="mt-2 block w-full rounded-xl border border-black/20 px-3 py-2 font-normal" value={selectedBrand} onChange={(event) => setSelectedBrand(event.target.value)}>
+            <option value="">All brands</option>
+            {selectedBrand && !brands.some(({slug}) => slug === selectedBrand) && <option value={selectedBrand}>{selectedBrand}</option>}
+            {brands.map(({id, slug, name}) => <option key={id} value={slug}>{name}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={stockOnly} onChange={(event) => setStockOnly(event.target.checked)} /> In stock only</label>
       </div>
 
       {/* Price Accordion */}
@@ -408,6 +428,8 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
               size: selectedSize,
               category: selectedCategory,
               dressStyle: selectedDressStyle || "",
+              brand: selectedBrand,
+              stock: stockOnly,
             });
             setIsMobileFilterOpen(false);
           }}
@@ -421,12 +443,14 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
           onClick={() => {
             setSelectedCategory(null);
             setSelectedDressStyle(null);
+            setSelectedBrand("");
+            setStockOnly(false);
             setSelectedColor("");
             setSelectedSize("");
             setPriceMin(0);
             setPriceMax(300);
             setCurrentPage(1);
-            setApplied({ min: 0, max: 300, color: "", size: "", category: null, dressStyle: "" });
+            setApplied({ min: 0, max: 300, color: "", size: "", category: null, dressStyle: "", brand: "", stock: false });
             setLoading(true);
           }}
         >

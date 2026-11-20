@@ -14,7 +14,7 @@ export function NewsletterCTA({title,description}:{title?:string;description?:st
     event.preventDefault();
     if(busy||!email.trim())return;
     setBusy(true);setError("");
-    try{await backend("/newsletter/subscribe",{method:"POST",body:{email,consent:true,source:"footer"}});setIsSubscribed(true);setEmail("");}
+    try{await backend("/api/commerce/newsletter/subscribe",{method:"POST",body:{email,consent:true,source:"footer"}});setIsSubscribed(true);setEmail("");}
     catch(failure){setError(failure instanceof Error?failure.message:"Could not subscribe.");}
     finally{setBusy(false);}
   };

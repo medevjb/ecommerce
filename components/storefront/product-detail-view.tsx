@@ -14,15 +14,19 @@ import { Product } from "@/types";
 import { ProductCard } from "./product-card";
 import { useCart } from "@/context/cart-context";
 import type { CatalogReview } from "@/lib/catalog";
+import { ProductReviews } from "./product-reviews";
+import { WishlistButton } from "./wishlist";
+import type { PageInfo } from "@/lib/staff-api";
 import { usd } from "@/lib/staff-api";
 
 interface ProductDetailViewProps {
   product: Product;
   related: Product[];
   reviews: CatalogReview[];
+  reviewsPagination?: PageInfo;
 }
 
-export function ProductDetailView({ product, related, reviews }: ProductDetailViewProps) {
+export function ProductDetailView({ product, related, reviews, reviewsPagination }: ProductDetailViewProps) {
   const { addItem, error:cartError, loading } = useCart();
 
   // Images for gallery
@@ -40,11 +44,9 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
   const purchasable = Boolean(variant && variant.stock > 0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"details" | "reviews">("details");
-  const [visibleCount, setVisibleCount] = useState(3);
   const [addedToast, setAddedToast] = useState(false);
   const [adding, setAdding] = useState(false);
   const displayRating = product.rating;
-  const displayReviewsCount = product.reviewsCount;
   const currentPrice = variant?.price ?? product.price;
   const originalPrice = variant ? variant.originalPrice : product.originalPrice;
   const discountPercent = originalPrice ? Math.round(100 * (originalPrice - currentPrice) / originalPrice) : 0;
@@ -237,6 +239,8 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
             </button>
           </div>
 
+          <WishlistButton product={product} />
+
           {/* Added to cart toast feedback */}
           {addedToast && (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs sm:text-sm font-medium text-emerald-800 transition-all">
@@ -274,98 +278,7 @@ export function ProductDetailView({ product, related, reviews }: ProductDetailVi
 
       </div>
 
-      {/* Tab Content: Rating & Reviews (Default Tab in Screenshot) */}
-      {activeTab === "reviews" && (
-        <div className="mt-6 sm:mt-10">
-          {/* Header Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-baseline gap-1.5 sm:gap-2">
-              <h2 className="font-bold text-lg sm:text-2xl text-black font-sans">
-                All Reviews
-              </h2>
-              <span className="text-xs sm:text-sm font-normal text-black/60 font-sans">
-                ({displayReviewsCount})
-              </span>
-            </div>
-
-            {/* Actions: Filter, Sort, Write a Review */}
-          </div>
-
-          {/* Reviews Grid (1 col on mobile, 2 cols on md) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mt-6 sm:mt-8">
-            {reviews.length===0&&<p className="text-sm text-zinc-600">No approved reviews yet.</p>}
-            {reviews.slice(0, visibleCount).map(
-              (review) => (
-                <div
-                  key={review.id}
-                  className="rounded-[20px] border border-black/10 bg-white p-6 sm:p-7 relative flex flex-col justify-between shadow-xs"
-                >
-                  <div>
-                    {/* Rating + Top-right Menu */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-[#FFC633]">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < Math.floor(review.rating)
-                                ? "fill-[#FFC633] text-[#FFC633]"
-                                : i < review.rating
-                                ? "fill-[#FFC633] text-[#FFC633] opacity-80"
-                                : "text-zinc-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-
-                    </div>
-
-                    {/* Author Name + Verified Badge */}
-                    <div className="mt-3.5 sm:mt-4 flex items-center gap-1.5">
-                      <span className="font-bold text-lg sm:text-[19px] text-black font-sans">
-                        {review.title || "Customer review"}
-                      </span>
-                      {review.verified_purchase && (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#01AB31] text-white">
-                          <Check className="h-3.5 w-3.5 stroke-[3]" />
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Review Comment */}
-                    <p className="mt-3 text-sm sm:text-base text-black/60 leading-relaxed font-sans">
-                      {review.body}
-                    </p>
-                  </div>
-
-                  {/* Date Stamp */}
-                  <span className="mt-5 text-xs sm:text-sm text-black/40 font-medium font-sans">
-                    Posted on{" "}
-                    {review.created_at.includes("T")
-                      ? new Date(review.created_at).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : review.created_at}
-                  </span>
-                </div>
-              )
-            )}
-          </div>
-
-          {reviews.length > visibleCount && (
-            <div className="mt-9 sm:mt-11 text-center">
-              <button
-                onClick={() => setVisibleCount((prev) => prev + 3)}
-                className="inline-flex rounded-full border border-black/10 bg-white px-10 sm:px-12 py-3.5 text-sm font-medium text-black hover:bg-black hover:text-white transition-all shadow-2xs cursor-pointer"
-              >
-                Load More Reviews
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === "reviews" && <ProductReviews slug={product.slug} initialReviews={reviews} pagination={reviewsPagination} />}
 
       {/* Tab Content: Product Details */}
       {activeTab === "details" && (

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ProductDetailView } from "@/components/storefront/product-detail-view";
-import { adaptProduct, catalog, CatalogError, type CatalogAttribute, type CatalogProduct, type CatalogReview } from "@/lib/catalog";
+import { adaptProduct, catalog, catalogEnvelope, CatalogError, type CatalogAttribute, type CatalogProduct, type CatalogReview } from "@/lib/catalog";
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -16,12 +16,12 @@ async function ProductDetailLoader({
   const base = "/products/" + encodeURIComponent(slug);
   const [product, attributes, related, reviews] = await Promise.all([
     catalog<CatalogProduct>(base), catalog<CatalogAttribute[]>("/attributes"),
-    catalog<CatalogProduct[]>(base + "/related"), catalog<CatalogReview[]>(base + "/reviews"),
+    catalog<CatalogProduct[]>(base + "/related"), catalogEnvelope<CatalogReview[]>(base + "/reviews"),
   ]).catch((error: unknown) => {
     if (error instanceof CatalogError && error.status === 404) notFound();
     throw error;
   });
-  return <ProductDetailView key={product.id} product={adaptProduct(product, attributes)} related={related.map((item) => adaptProduct(item))} reviews={reviews} />;
+  return <ProductDetailView key={product.id} product={adaptProduct(product, attributes)} related={related.map((item) => adaptProduct(item))} reviews={reviews.data} reviewsPagination={reviews.meta?.pagination} />;
 }
 
 export default function ProductDetailPage({

@@ -16,6 +16,7 @@ export type Operation = {
   path: string;
   method: string;
   permission?: string;
+  requires?: string[];
   fields?: Field[];
   filters?: Field[];
   multipart?: boolean;
@@ -46,7 +47,8 @@ export const sections: Record<string, Section> = {
   "attribute-values": taxonomy("AttributeValue", "Attribute values", "listAdminAttributeValue", "getAdminAttributeValue", "bulkAttributeValue", "reorderAttributeValue", "setAttributeValueStatus"),
   inventory: {title:"Inventory", description:"Review available stock and record adjustments with an audit reason.", list:"listInventory", columns:["sku","on_hand","reserved","available","low_stock"], row:[["adjustInventory","Adjust stock"]]},
   movements: {title:"Stock movements", list:"listInventoryMovements", columns:["type","delta","reason","created_at"]},
-  orders: {title:"Orders", description:"Review customer orders, manage fulfillment and issue refunds.", list:"listAdminOrders", detail:"getAdminOrder", columns:["number","status","payment_status","total_amount","created_at"], row:[["transitionOrder","Advance fulfillment"],["cancelAdminOrder","Cancel order"],["requestOrderRefund","Issue refund"]], children:["refunds"]},
+  orders: {title:"Orders", description:"Review customer orders, manage fulfillment and issue refunds.", list:"listAdminOrders", detail:"getAdminOrder", columns:["number","status","payment_status","total_amount","created_at"], row:[["transitionOrder","Advance fulfillment"],["cancelAdminOrder","Cancel order"],["requestOrderRefund","Issue refund"]], children:["refunds","notes"]},
+  notes: {title:"Internal order notes", list:"listOrderNotes", columns:["author_name","body","created_at"], actions:[["createOrderNote","Add note"]]},
   refunds: {title:"Refund history", list:"listOrderRefunds", columns:["status","amount","reason","created_at"]},
   customers: {title:"Customers", list:"listCustomers", detail:"getCustomer", columns:["name","email","active","created_at"], row:[["updateCustomerStatus","Change account status"]], children:["customer-orders"]},
   "customer-orders": {title:"Order history", list:"listCustomerHistory", columns:["number","status","payment_status","total_amount","created_at"]},
