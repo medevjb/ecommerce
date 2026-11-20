@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import { ShoppingBag } from "lucide-react";
 import { Product } from "@/types";
 import { StarRating } from "./star-rating";

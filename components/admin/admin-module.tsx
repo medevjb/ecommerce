@@ -78,10 +78,12 @@ function permittedBulkOptions(staff: Staff | null, operation: string) {
   });
 }
 
+const nextOrderStatus: Record<string, string> = {paid:"processing", processing:"shipped", shipped:"delivered"};
+
 function actionVisible(staff: Staff | null, key: string, row: Row) {
   if (key.startsWith("restore")) return Boolean(row.deleted_at);
   if (row.deleted_at) return false;
-  if (key === "transitionOrder") return ["paid", "processing", "shipped"].includes(String(row.status)) && row.payment_status !== "refunded";
+  if (key === "transitionOrder") return Boolean(nextOrderStatus[String(row.status)]) && row.payment_status !== "refunded" && row.cancellation_refund_pending !== true;
   if (key === "cancelAdminOrder") {
     return ["pending", "paid", "processing"].includes(String(row.status))
       && (Number(row.captured_amount) === 0 || permitted(staff, "requestOrderRefund"));
@@ -166,7 +168,10 @@ function Module({ section, sectionKey, parent, root, openCreate }: {section:Sect
       onSecurityAction={(action) => setTask({action})} onProfileSaved={setStaffProfile} />}
     {result !== undefined && sectionKey === "site-settings" && <SiteSettings settings={record(record(result).data) as Record<string,string | null>} editable={permitted(staff,"updateSiteSettings")} />}
     {result !== undefined && !dedicatedSettings && !columns.length && <div className="rounded-2xl border border-[#ebe8f2] bg-white p-6"><Details data={result} /></div>}
-    {result !== undefined && sectionKey === "sales" && Object.keys(record(record(result).totals)).length > 0 && <div className="rounded-2xl border border-[#ebe8f2] bg-white p-6"><Details data={record(result).totals} /></div>}
+    {sectionKey === "sales" && record(result).totals != null && <div className="grid gap-4 lg:grid-cols-2">
+      <section className="space-y-3 rounded-2xl border border-[#ebe8f2] bg-white p-6"><h2 className="font-semibold">Sales totals</h2><Details data={record(result).totals} /></section>
+      <section className="space-y-3 rounded-2xl border border-[#ebe8f2] bg-white p-6"><h2 className="font-semibold">Orders by status</h2><Details data={record(result).order_status} /></section>
+    </div>}
     {result !== undefined && columns.length > 0 && <div className="overflow-hidden rounded-2xl border border-[#ebe8f2] bg-white">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#ebe8f2] px-5 py-4"><p className="text-sm font-semibold">{meta?.total ?? rows.length} records</p>{selected.length > 0 && <button onClick={() => setSelected([])} className="text-sm font-semibold text-violet-700">Clear {selected.length} selected</button>}</div>
       {rows.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm">
@@ -180,6 +185,7 @@ function Module({ section, sectionKey, parent, root, openCreate }: {section:Sect
             {collectable && <td className="p-3 text-center"><input type="checkbox" aria-label={`Select ${row.name ?? row.code ?? row.title ?? "record " + (index + 1)}`} checked={selected.includes(id)} onChange={(event) => setSelected((items) => event.target.checked ? [...items,id] : items.filter((value) => value !== id))} className="size-4 accent-violet-700" /></td>}
             {columns.map((key,i) => <td key={key} className={`max-w-60 truncate px-5 py-3.5 ${i ? "text-[#4c435e]" : "font-semibold"}`} title={key === "thumbnail" ? undefined : renderValue(get(row,key),key)}>
               {key === "thumbnail" ? <RecordThumbnail key={imageSource(row)} src={imageSource(row)} /> : /status|published|active|low_stock/.test(key) && get(row,key) != null ? <span className="inline-flex rounded-full bg-[#f0e9ff] px-2.5 py-1 text-xs font-semibold text-[#5733b8]">{human(renderValue(get(row,key),key))}</span> : renderValue(get(row,key),key)}
+              {key === "status" && row.cancellation_refund_pending === true && <span className="ml-2 text-xs font-medium text-amber-800">Cancellation refund pending</span>}
             </td>)}
             <td className="whitespace-nowrap px-5 py-3 text-right"><div className="flex justify-end gap-2">
               <button className={secondary} onClick={() => setTask({action:[section.detail ?? "", "Record details"],target:row,inspect:true})}>View</button>
@@ -214,7 +220,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
   const [operationKey,label] = task.action;
   const operation = apiOperations[operationKey];
   const id = rowId(task.target ?? {}, sectionKey);
-  const needsRecord = Boolean(id && detail && (task.inspect || operation?.method === "PATCH") && !operationKey.endsWith("Status"));
+  const needsRecord = Boolean(id && detail && (task.inspect || operation?.method === "PATCH" || operationKey === "transitionOrder") && !operationKey.endsWith("Status"));
   const [base, setBase] = useState<unknown>(task.target);
   const [loading, setLoading] = useState(needsRecord);
   const [error, setError] = useState("");
@@ -254,8 +260,15 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
     });
     return () => controller.abort();
   }, [operation, task.inspect]);
-  const fields = (operation?.fields ?? []).map((field) => catalogBulkPermissions[operationKey] && field.name === "action"
-    ? {...field, options: permittedBulkOptions(staff, operationKey)} : field);
+  const transition = operationKey === "transitionOrder" && actionVisible(staff, "transitionOrder", record(base)) ? nextOrderStatus[String(record(base).status)] : undefined;
+  const fields = (operation?.fields ?? [])
+    .filter(({name}) => operationKey !== "transitionOrder" || name === "status" || transition === "shipped")
+    .map((field) => {
+      if (catalogBulkPermissions[operationKey] && field.name === "action") return {...field, options:permittedBulkOptions(staff, operationKey)};
+      if (operationKey === "transitionOrder" && field.name === "status") return {...field, options:transition ? [transition] : []};
+      if (transition === "shipped" && ["shipping_carrier", "tracking_number"].includes(field.name)) return {...field, required:true};
+      return field;
+    });
   const destructive = operation?.method === "DELETE" || operationKey === "cancelAdminOrder" || operationKey === "requestOrderRefund";
   const targetName = renderValue(record(base).number ?? record(base).name ?? record(base).key ?? record(base).title ?? record(base).sku ?? record(base).code, "name");
   const createdProductId = operationKey === "createProduct" && submitted && permitted(staff, "createProductVariant") ? String(record(response).id ?? "") : "";
@@ -265,7 +278,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || loading || !operation || bulkFinished) return;
+    if (busy || loading || !operation || bulkFinished || (operationKey === "transitionOrder" && !transition)) return;
     setError(""); setFieldErrors({}); setBusy(true);
     try {
       const form = new FormData(event.currentTarget);
@@ -332,15 +345,16 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
         onSaved={() => onSaved("Variant options saved.")}
       /> : loading ? <p role="status">Loading record…</p> : task.inspect ? <Details data={base} /> : showResponse ? <><p className="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">Save any recovery codes securely before closing.</p><Details data={response} />{operationKey === "confirmStaffTwoFactor" && <Link className={primary} href="/login">Sign in again</Link>}</> :
       <form onSubmit={submit} className="space-y-4">
+        {operationKey === "transitionOrder" && !transition && <p role="alert">This order cannot advance while fulfilment is paused.</p>}
         {destructive && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-950">Review this action before confirming. It will update the live staff workspace.</p>}
         <div className="grid gap-4 sm:grid-cols-2">{fields.map((field) => field.name === "data.items" ? <SectionItems key={field.name} value={get(base,field.name)} /> :
           imageFields.has(field.name) ? <ImageUploadField key={field.name} name={field.name} label={field.label} url={get(base,field.name)} error={fieldErrors[field.name]?.[0]} /> :
-          <FormField key={field.name} field={field} value={initialValue(field,base,operationKey)} errors={fieldErrors[field.name]} choices={optionGroups[optionSources[field.name]]} />)}</div>
+          <FormField key={field.name} field={field} value={operationKey === "transitionOrder" && field.name === "status" ? transition : initialValue(field,base,operationKey)} errors={fieldErrors[field.name]} choices={optionGroups[optionSources[field.name]]} />)}</div>
         {operationKey === "createProduct" && permitted(staff,"uploadProductImage") && <label className="block space-y-1.5 rounded-xl border border-[#ded8ec] p-3 text-sm font-semibold">
           Product photos <span className="font-normal text-zinc-500">(optional)</span>
           <input type="file" multiple name="draft_images" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-1.5 file:text-violet-900" />
         </label>}
-        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={() => ref.current?.close()}>Cancel</button><button type="submit" disabled={busy || bulkFinished} className={primary}>{busy ? "Saving…" : destructive ? "Confirm action" : operationKey === "createProduct" ? "Save draft" : "Save changes"}</button></div>
+        <div className="flex justify-end gap-2"><button type="button" className={secondary} onClick={() => ref.current?.close()}>Cancel</button><button type="submit" disabled={busy || bulkFinished || (operationKey === "transitionOrder" && !transition)} className={primary}>{busy ? "Saving…" : destructive ? "Confirm action" : operationKey === "createProduct" ? "Save draft" : "Save changes"}</button></div>
       </form>}
     </div>
   </dialog>;

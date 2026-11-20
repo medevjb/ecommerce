@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -22,7 +22,7 @@ import { usd } from "@/lib/staff-api";
 interface ProductDetailViewProps {
   product: Product;
   related: Product[];
-  reviews: CatalogReview[];
+  reviews: CatalogReview[] | null;
   reviewsPagination?: PageInfo;
 }
 

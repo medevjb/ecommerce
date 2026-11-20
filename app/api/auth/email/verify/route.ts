@@ -1,3 +1,4 @@
+import { upstreamHeaders } from "@/lib/upstream-headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const apiBase = () => (process.env.LARAVEL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1").replace(/\/$/, "");
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
   const query = new URLSearchParams({ expires, signature });
   try {
     const upstream = await fetch(`${apiBase()}/auth/email/verify/${encodeURIComponent(id)}/${encodeURIComponent(hash)}?${query}`, {
-      headers: { Accept: "application/json" },
+      headers: upstreamHeaders(request.headers),
       cache: "no-store",
       redirect: "error",
       signal: AbortSignal.timeout(15_000),

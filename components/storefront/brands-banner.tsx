@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 
 export type StorefrontBrand = { id: string; name: string; slug: string; logo_url?: string | null };

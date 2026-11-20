@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { StoreLogo } from "./storefront-image";
 import { NewsletterCTA } from "./newsletter-cta";
 
 type FooterLink = { id: string; data: { label?: string; url?: string; column?: string } };
 type FooterProps = {
   brand?: string;
+  logo?: string;
+  logoAlt?: string;
   newsletterTitle?: string;
   newsletterCopy?: string;
   copyright?: string;
@@ -13,7 +16,7 @@ type FooterProps = {
 };
 
 export function StorefrontFooter({
-  brand = "SHOP.CO", newsletterTitle, newsletterCopy, copyright, supportEmail, links = [], social = [],
+  brand = "SHOP.CO", logo, logoAlt, newsletterTitle, newsletterCopy, copyright, supportEmail, links = [], social = [],
 }: FooterProps) {
   const groups = new Map<string, FooterLink[]>();
   for (const item of links) {
@@ -27,7 +30,7 @@ export function StorefrontFooter({
     <NewsletterCTA title={newsletterTitle} description={newsletterCopy} />
     <div className="mx-auto mt-10 flex max-w-[1360px] flex-wrap gap-8">
       <div className="mr-auto space-y-3">
-        <Link href="/" className="text-2xl font-black">{brand}</Link>
+        <Link href="/" className="text-2xl font-black"><StoreLogo brand={brand} logo={logo} alt={logoAlt} /></Link>
         {supportEmail && <p><a className="text-sm underline" href={"mailto:" + supportEmail}>{supportEmail}</a></p>}
         <div className="flex flex-wrap gap-3 text-sm">{social.map(({id,data}) => data.url && data.label &&
           <Link key={id} href={data.url} className="underline">{data.label}</Link>)}</div>

@@ -1,3 +1,4 @@
+import { upstreamHeaders } from "@/lib/upstream-headers";
 const publicCatalogPath = /^\/(?:products|categories|attributes|brands|collections\/(?:new-arrivals|top-selling))(?:\/[a-z0-9-]+(?:\/(?:related|reviews))?)?$/i;
 
 export async function GET(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
@@ -7,7 +8,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   const base = (process.env.LARAVEL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1").replace(/\/$/, "");
   try {
     const upstream = await fetch(base + endpoint + new URL(request.url).search, {
-      headers: { Accept: "application/json" }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10_000),
+      headers: upstreamHeaders(request.headers), cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10_000),
     });
     if (!upstream.headers.get("content-type")?.includes("application/json")) {
       return Response.json({ message: "The store catalog is temporarily unavailable." }, { status: 502 });

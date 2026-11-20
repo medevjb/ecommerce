@@ -16,6 +16,7 @@ export type CatalogProduct = {
   id: string; slug: string; name: string; description: string | null; short_description: string | null;
   regular_amount: number; sale_amount: number | null; current_amount: number; discount_percent: number;
   in_stock: boolean; published_at: string; rating_average: number | null; rating_count: number;
+  seo_title?: string | null; seo_description?: string | null;
   images?: { url: string; is_primary: boolean }[]; categories?: CatalogCategory[];
   variants?: { id: string; sku: string; is_default: boolean; in_stock: boolean; price_override_amount: number | null; options: CatalogOption[] }[];
 };
@@ -84,8 +85,9 @@ export function flattenCategories(categories: CatalogCategory[]): CatalogCategor
   return categories.flatMap((category) => [category, ...flattenCategories(category.children ?? [])]);
 }
 
-export async function catalogEnvelope<T>(path: string, signal?: AbortSignal) {
-  const response = await fetch(apiBase() + path, { headers: { Accept: "application/json" }, cache: "no-store", signal });
+export async function catalogEnvelope<T>(path: string, signal?: AbortSignal, headers: HeadersInit = { Accept: "application/json" }) {
+  const timeout = AbortSignal.timeout(10_000);
+  const response = await fetch(apiBase() + path, { headers, cache: "no-store", signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
   if (!response.ok) throw new CatalogError(response.status, "Could not load the store catalog.");
   return response.json() as Promise<{ data: T; meta: { pagination?: import("./staff-api").PageInfo } | null }>;
 }

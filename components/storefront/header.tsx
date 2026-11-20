@@ -11,10 +11,11 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { StoreLogo } from "./storefront-image";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/context/auth-context";
 
-export function StorefrontHeader({brand="SHOP.CO",links=[]}:{brand?:string;links?:{id:string;data:{label?:string;url?:string}}[]}) {
+export function StorefrontHeader({brand="SHOP.CO",logo,logoAlt,links=[]}:{brand?:string;logo?:string;logoAlt?:string;links?:{id:string;data:{label?:string;url?:string}}[]}) {
   const navigation=links.length ? links : [{id:"shop",data:{url:"/products",label:"Shop"}},{id:"categories",data:{url:"/categories",label:"Categories"}}];
   const router = useRouter();
   const { totalItems } = useCart();
@@ -48,7 +49,7 @@ export function StorefrontHeader({brand="SHOP.CO",links=[]}:{brand?:string;links
 
           <Link href="/" className="flex items-center shrink-0">
             <span className="font-black text-2xl sm:text-3xl lg:text-[32px] tracking-tighter text-black font-sans uppercase">
-              {brand}
+              <StoreLogo brand={brand} logo={logo} alt={logoAlt} />
             </span>
           </Link>
         </div>

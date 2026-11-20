@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { ArrowLeft, ArrowUpRight, BarChart3, Box, ChevronDown, ClipboardList, LayoutDashboard, LogOut, Menu, Package, Settings, X } from "lucide-react";
 import { apiOperations, navigation, sections } from "@/lib/admin-workspace";
-import { ApiError, human, staffRequest, type Staff } from "@/lib/staff-api";
+import { ApiError, human, staffAccessChanged, staffRequest, type Staff } from "@/lib/staff-api";
 
 const StaffContext = createContext<Staff | null>(null);
 export const useStaff = () => useContext(StaffContext);
@@ -29,14 +29,36 @@ export function AdminShell({ brand, children }: { brand: string; children: React
   const router = useRouter();
 
   useEffect(() => {
-    const controller = new AbortController();
-    staffRequest<Staff>("/me", { signal: controller.signal }).then(({ data }) => setStaff(data)).catch((failure) => {
-      if (controller.signal.aborted) return;
-      if (failure instanceof ApiError && failure.status === 401) router.replace("/login");
-      else setError(failure instanceof Error ? failure.message : "The staff profile could not be loaded.");
-    });
-    return () => controller.abort();
-  }, [request, router]);
+    let controller: AbortController | undefined;
+    function refresh() {
+      controller?.abort();
+      const current = new AbortController();
+      controller = current;
+      staffRequest<Staff>("/me", {signal:current.signal}).then(({data}) => {
+        if (current.signal.aborted) return;
+        setStaff(data);
+        setError("");
+      }).catch((failure: unknown) => {
+        if (current.signal.aborted) return;
+        if (failure instanceof ApiError && [401, 403].includes(failure.status)) {
+          setStaff(null);
+          router.replace("/login");
+        } else setError(failure instanceof Error ? failure.message : "The staff profile could not be loaded.");
+      });
+    }
+    refresh();
+    const refreshTimer = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 60_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener(staffAccessChanged, refresh);
+    return () => {
+      controller?.abort();
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(staffAccessChanged, refresh);
+    };
+  }, [pathname, request, router]);
 
   if (!staff) return <main className="grid min-h-screen place-items-center bg-[#f7f7fb] p-6 text-slate-900">
     <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm" role={error ? "alert" : "status"}>{error || "Opening your workspace…"}{error && <button className="ml-3 font-semibold text-violet-700" onClick={() => { setError(""); setRequest((value) => value + 1); }}>Retry</button>}</div>

@@ -18,7 +18,14 @@ export function CustomerGuard({children}:{children:ReactNode}) {
   const pathname = usePathname();
   useEffect(() => {
     if (!isLoading && !user) {
-      router.replace(pathname === "/checkout" ? "/login?next=checkout" : pathname === "/wishlist" ? "/login?next=wishlist" : "/login");
+      if (pathname === "/checkout") {
+        const query = new URLSearchParams({next: "checkout"});
+        const order = new URLSearchParams(window.location.search).get("order");
+        if (order && /^[0-9a-hjkmnp-tv-z]{26}$/i.test(order)) query.set("order", order);
+        router.replace("/login?" + query.toString());
+      } else {
+        router.replace(pathname === "/wishlist" ? "/login?next=wishlist" : "/login");
+      }
     }
   }, [user, isLoading, pathname, router]);
   return user&&!isLoading ? children : <p role="status" className="p-6">Opening your account…</p>;
@@ -168,6 +175,7 @@ export function CustomerOrders() {
         <div><p className="font-semibold">{order.number}</p><p className="text-sm text-zinc-600">{human(order.status)} · {money(order.total_amount)}</p></div>
         <div className="flex gap-3">
           <button className="text-sm underline" disabled={Boolean(pending)} onClick={() => load(order.id)}>{detail?.id === order.id ? "Hide details" : "View order"}</button>
+          {order.status === "pending" && order.payment_status === "pending" && <Link className="text-sm underline" href={"/checkout?order=" + encodeURIComponent(order.id)}>Resume payment</Link>}
           {order.status === "pending" && order.payment_status === "pending" && <button className="text-sm text-red-800 underline" disabled={Boolean(pending)} onClick={() => cancel(order)}>Cancel unpaid order</button>}
         </div>
       </div>

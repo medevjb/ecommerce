@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import {
   ChevronRight,
   Trash2,

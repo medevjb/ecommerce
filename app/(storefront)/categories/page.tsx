@@ -1,8 +1,9 @@
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 import { ArrowUpRight, Layers3 } from "lucide-react";
 import { Suspense } from "react";
-import { catalog, flattenCategories, type CatalogCategory } from "@/lib/catalog";
+import { flattenCategories, type CatalogCategory } from "@/lib/catalog";
+import { serverCatalog } from "@/lib/server-catalog";
 
 export default function CategoriesPage() {
   return <main className="mx-auto max-w-[1440px] space-y-8 px-5 py-10 sm:px-10">
@@ -14,7 +15,7 @@ export default function CategoriesPage() {
 }
 
 async function CategoryList() {
-  const categories = flattenCategories(await catalog<CatalogCategory[]>("/categories"));
+  const categories = flattenCategories(await serverCatalog<CatalogCategory[]>("/categories"));
   if (!categories.length) return <p className="text-zinc-600">No categories are available yet.</p>;
   return <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
     {categories.map((category) => {

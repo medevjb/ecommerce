@@ -1,3 +1,4 @@
+import { upstreamHeaders } from "@/lib/upstream-headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const apiBase = () => (process.env.LARAVEL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1").replace(/\/$/, "");
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const upstream = await fetch(`${apiBase()}/auth/email/verify-code`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: upstreamHeaders(request.headers, { "Content-Type": "application/json" }),
       body,
       cache: "no-store",
       redirect: "error",

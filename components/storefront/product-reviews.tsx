@@ -13,14 +13,14 @@ const button = "rounded-full border border-black/20 px-4 py-2 text-sm font-semib
 const input = "mt-1 block w-full rounded-lg border border-black/20 p-2";
 
 export function ProductReviews({slug, initialReviews, pagination}: {
-  slug: string; initialReviews: CatalogReview[]; pagination?: PageInfo;
+  slug: string; initialReviews: CatalogReview[] | null; pagination?: PageInfo;
 }) {
   const {user, isLoading} = useAuth();
   const path = "/products/" + encodeURIComponent(slug) + "/reviews";
   const [reviews, setReviews] = useState(initialReviews);
   const [currentPage, setCurrentPage] = useState(pagination?.current_page ?? 1);
   const [lastPage, setLastPage] = useState(pagination?.last_page ?? 1);
-  const [total, setTotal] = useState(pagination?.total ?? initialReviews.length);
+  const [total, setTotal] = useState(pagination?.total ?? initialReviews?.length ?? 0);
   const [ownership, setOwnership] = useState<{customerId:string;review:OwnReview|null}>();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -40,16 +40,16 @@ export function ProductReviews({slug, initialReviews, pagination}: {
 
   async function fetchPage(page: number, append = false) {
     const {data, meta} = await catalogEnvelope<CatalogReview[]>(path + "?page=" + page);
-    setReviews((previous) => append ? [...previous, ...data.filter(({id}) => !previous.some((review) => review.id === id))] : data);
+    setReviews((previous) => append ? [...(previous ?? []), ...data.filter(({id}) => !previous?.some((review) => review.id === id))] : data);
     setCurrentPage(page);
     setLastPage(meta?.pagination?.last_page ?? page);
     setTotal(meta?.pagination?.total ?? data.length);
   }
 
-  async function loadMore() {
+  async function loadMore(page = currentPage + 1) {
     setBusy(true);
     setError("");
-    try { await fetchPage(currentPage + 1, true); }
+    try { await fetchPage(page, page !== 1); }
     catch (failure) { setError(failureMessage(failure)); }
     finally { setBusy(false); }
   }
@@ -114,9 +114,10 @@ export function ProductReviews({slug, initialReviews, pagination}: {
     </div>}
     {notice && <p role="status" className="text-sm text-green-800">{notice}</p>}
     {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
-    {reviews.length === 0 && <p className="text-sm text-black/60">No approved reviews yet.</p>}
+    {reviews === null && <p className="text-sm">Reviews could not be loaded. <button className="underline" disabled={busy} onClick={() => loadMore(1)}>Try again</button></p>}
+    {reviews?.length === 0 && <p className="text-sm text-black/60">No approved reviews yet.</p>}
     <div className="grid gap-4 md:grid-cols-2">
-      {reviews.map((review) => <article key={review.id} className="space-y-2 rounded-2xl border border-black/10 p-5">
+      {reviews?.map((review) => <article key={review.id} className="space-y-2 rounded-2xl border border-black/10 p-5">
         <StarRating rating={review.rating} />
         <h3 className="font-bold">{review.title || "Customer review"}</h3>
         {review.verified_purchase && <p className="text-xs text-green-800">Verified purchase</p>}
@@ -124,7 +125,7 @@ export function ProductReviews({slug, initialReviews, pagination}: {
         <time dateTime={review.created_at} className="text-xs text-black/60">{new Date(review.created_at).toLocaleDateString()}</time>
       </article>)}
     </div>
-    {currentPage < lastPage && <button className={button} disabled={busy} onClick={loadMore}>Load more reviews</button>}
+    {currentPage < lastPage && <button className={button} disabled={busy} onClick={() => loadMore()}>Load more reviews</button>}
   </section>;
 }
 

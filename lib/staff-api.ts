@@ -62,8 +62,17 @@ export async function backend<T>(
   return result;
 }
 
-export function staffRequest<T>(path: string, options?: Parameters<typeof backend<T>>[1]) {
-  return backend<T>("/api/staff" + path, options);
+export const staffAccessChanged = "staff-access-changed";
+
+export async function staffRequest<T>(path: string, options?: Parameters<typeof backend<T>>[1]) {
+  try {
+    return await backend<T>("/api/staff" + path, options);
+  } catch (error) {
+    if (typeof window !== "undefined" && path !== "/me" && error instanceof ApiError && [401, 403].includes(error.status)) {
+      window.dispatchEvent(new Event(staffAccessChanged));
+    }
+    throw error;
+  }
 }
 
 export const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });

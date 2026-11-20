@@ -1,3 +1,4 @@
+import { upstreamHeaders } from "@/lib/upstream-headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const cookie = "ecommerce_staff";
@@ -33,7 +34,7 @@ async function forward(request: NextRequest, context: Context) {
   const endpoint = route === "/catalog-options" && request.method === "GET" ? "/attributes" : recovery
     ? (recovery[1] === "staff" ? "/admin/auth/" : "/auth/") + recovery[2]
     : route === "/login" ? "/auth/login" : route === "/challenge" ? "/admin/auth/2fa/challenge" : "/admin" + route;
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = upstreamHeaders(request.headers);
   for (const name of ["content-type", "idempotency-key"]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);

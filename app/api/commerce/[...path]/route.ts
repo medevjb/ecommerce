@@ -1,6 +1,7 @@
+import { upstreamHeaders } from "@/lib/upstream-headers";
 const allowed: Record<string, RegExp> = {
   GET: /^\/(?:cart|me(?:\/addresses|\/wishlist(?:\/[a-z0-9]+)?|\/product-reviews\/[a-z0-9-]+)?|orders(?:\/[a-z0-9]+)?)$/i,
-  POST: /^\/(?:cart\/(?:items|coupon|merge)|checkout(?:\/preview)?|me\/addresses|orders\/[a-z0-9]+\/cancel|products\/[a-z0-9-]+\/reviews|newsletter\/(?:subscribe|unsubscribe)|auth\/(?:logout|change-password))$/i,
+  POST: /^\/(?:cart\/(?:items|coupon|merge)|checkout(?:\/preview)?|me\/addresses|orders\/[a-z0-9]+\/(?:cancel|resume-checkout)|products\/[a-z0-9-]+\/reviews|newsletter\/(?:subscribe|unsubscribe)|auth\/(?:logout|change-password))$/i,
   PATCH: /^\/(?:cart\/items\/[a-z0-9]+|me(?:\/(?:addresses|reviews)\/[a-z0-9]+)?)$/i,
   PUT: /^\/me\/wishlist\/[a-z0-9]+$/i,
   DELETE: /^\/(?:cart\/(?:items(?:\/[a-z0-9]+)?|coupon)|me\/(?:addresses|reviews|wishlist)\/[a-z0-9]+)$/i,
@@ -16,7 +17,7 @@ async function forward(request: Request, { params }: { params: Promise<{ path: s
     return Response.json({ message: "This action requires a storefront request." }, { status: 403, headers: noStore });
   }
   const base = (process.env.LARAVEL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1").replace(/\/$/, "");
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = upstreamHeaders(request.headers);
   for (const name of ["Authorization", "Content-Type", "X-Cart-Token", "Idempotency-Key"]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);

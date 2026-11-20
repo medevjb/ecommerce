@@ -1,11 +1,12 @@
-import Image from "next/image";
+import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CustomerReviewsSection } from "@/components/storefront/customer-reviews";
 import { NewArrivalsSection } from "@/components/storefront/new-arrivals";
 import { BrandsBanner, type StorefrontBrand } from "@/components/storefront/brands-banner";
 import { TopSellingSection } from "@/components/storefront/top-selling";
-import { adaptProduct, catalog, type CatalogProduct } from "@/lib/catalog";
+import { adaptProduct, type CatalogProduct } from "@/lib/catalog";
+import { serverCatalog } from "@/lib/server-catalog";
 
 type Marketing = { id:string; key:string; data:{ title?:string; body?:string; image_url?:string; image_alt?:string; link_url?:string; link_label?:string; author?:string; quote?:string; rating?:number | string | null; stats?:{label:string;value:string}[] } };
 type Section = { id:string; key:string; data:{ title:string; strategy:string }; entries: unknown[] };
@@ -13,7 +14,7 @@ type Home = { hero_slides:Marketing[]; promotions:Marketing[]; announcements:Mar
 type Tile = { title:string; image_url?:string; image_alt?:string; link_url?:string };
 
 async function HomeContent() {
-  const home=await catalog<Home>("/storefront/home");
+  const home=await serverCatalog<Home>("/storefront/home");
   return <div className="flex flex-col">
     {home.hero_slides.map(({id,data})=><section key={id} className="bg-[#f2f0f1]">
       <div className="mx-auto grid w-full max-w-[1440px] items-center px-4 sm:px-8 lg:px-12 pt-10 md:pt-0 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-4 sm:gap-6 lg:gap-8">

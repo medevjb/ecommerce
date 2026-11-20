@@ -26,6 +26,17 @@ Open `http://localhost:3000` for the storefront or `http://localhost:3000/admin`
 
 `LARAVEL_API_URL` is the server-side Laravel API base and `NEXT_PUBLIC_API_URL` is the browser-accessible API base. Include `/api/v1` in both. Configure backend mail for customer verification codes. Run the backend queue worker for recovery mail and newsletter messages. For card testing, configure `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` and follow the backend Stripe Test Mode instructions.
 
+Behind a trusted ingress, set `TRUSTED_CLIENT_IP_HEADER` to a dedicated header the ingress overwrites with the verified client IP. Restrict direct access to Next.js and configure Laravel's `TRUSTED_PROXY_ADDRESSES` for the upstream connection. See the backend operations guide for the full setup.
+
 ## Verification
 
 Run `npm run lint` and `npm run build`. The production build includes the TypeScript check.
+
+GitHub Actions runs the build, lint, and a Chromium smoke suite against a local API fixture. To run that suite locally after a build, install Playwright in a separate directory and run the tests.
+
+```sh
+browser_tools=$(mktemp -d)
+npm install --prefix "$browser_tools" playwright@1.58.2
+"$browser_tools/node_modules/.bin/playwright" install --only-shell chromium
+PLAYWRIGHT_ROOT="$browser_tools" node --test tests/browser/smoke.test.mjs
+```
