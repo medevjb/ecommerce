@@ -141,27 +141,29 @@ test("staff can advance eligible orders while cancellation refunds pause fulfilm
   }
 });
 
-test("dress-style tiles and shop filter buttons request the selected style", {timeout:30_000}, async () => {
+test("dress-style tiles and shop checkboxes request the selected style", {timeout:30_000}, async () => {
   const page = await browser.newPage();
+  page.setDefaultTimeout(10_000);
   try {
     await page.goto(origin);
     const tile = page.getByRole("link", {name:"Casual",exact:true});
     assert.equal(await tile.getAttribute("href"), "/products?style=casual");
     const filtered = page.waitForRequest((request) => {
       const url = new URL(request.url());
-      return url.pathname === "/api/catalog/products" && url.searchParams.get("style") === "casual";
+      return url.pathname === "/api/catalog/products" && url.searchParams.getAll("styles[]").includes("casual");
     });
     await tile.click();
     await filtered;
-    const style = page.getByRole("combobox", {name:"Dress Style"});
-    assert.equal(await style.inputValue(), "casual");
+    const style = page.getByRole("checkbox", {name:"Filter by Casual"});
+    await style.waitFor();
+    assert.equal(await style.isChecked(), true);
     const unfiltered = page.waitForRequest((request) => {
       const url = new URL(request.url());
-      return url.pathname === "/api/catalog/products" && !url.searchParams.has("style");
+      return url.pathname === "/api/catalog/products" && !url.searchParams.has("styles[]");
     });
-    await style.selectOption("");
+    await style.uncheck();
     await unfiltered;
-    assert.equal(await style.inputValue(), "");
+    assert.equal(await style.isChecked(), false);
   } finally {
     await page.close();
   }
