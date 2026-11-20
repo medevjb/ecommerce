@@ -1,3 +1,4 @@
+import { Preloader } from "@/components/shared/preloader";
 import { cache, Suspense } from "react";
 import type { Metadata } from "next";
 import { serverCatalog, serverCatalogEnvelope } from "@/lib/server-catalog";
@@ -46,11 +47,7 @@ export default function ProductDetailPage({
 }: ProductDetailPageProps) {
   return (
     <Suspense
-      fallback={
-        <div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-8 lg:px-12">
-          <div className="h-96 w-full animate-pulse rounded-[20px] bg-zinc-100" />
-        </div>
-      }
+      fallback={<Preloader label="Loading product" />}
     >
       <ProductDetailLoader params={params} />
     </Suspense>

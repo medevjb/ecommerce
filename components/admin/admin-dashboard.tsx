@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, CalendarDays, CircleDollarSign, ClipboardList, PackageOpen, Users } from "lucide-react";
@@ -37,7 +39,7 @@ export default function AdminDashboard() {
       </div>{stats && <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-sm"><CalendarDays size={15} /> {stats.today.date} · {stats.timezone}</span>}</div>
     </section>
     {error && <div role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <button className="ml-2 underline" onClick={() => { setError(""); setAttempt((value) => value + 1); }}>Retry</button></div>}
-    {allowed && !stats && !error && <p role="status" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading store metrics…</p>}
+    {allowed && !stats && !error && <Preloader label="Loading store metrics" compact />}
     {stats && <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[

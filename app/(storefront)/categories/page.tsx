@@ -1,3 +1,4 @@
+import { Preloader } from "@/components/shared/preloader";
 import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 import { ArrowUpRight, Layers3 } from "lucide-react";
@@ -10,7 +11,7 @@ export default function CategoriesPage() {
     <header className="rounded-3xl bg-[#f1efec] px-6 py-8 sm:px-10 sm:py-12">
       <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Shop by category</h1>
     </header>
-    <Suspense fallback={<p role="status" className="text-zinc-600">Loading categories…</p>}><CategoryList /></Suspense>
+    <Suspense fallback={<Preloader label="Loading categories" compact />}><CategoryList /></Suspense>
   </main>;
 }
 

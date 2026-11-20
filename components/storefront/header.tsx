@@ -7,19 +7,17 @@ import {
   Heart,
   Search,
   ShoppingCart,
-  User,
   Menu,
   X,
 } from "lucide-react";
 import { StoreLogo } from "./storefront-image";
 import { useCart } from "@/context/cart-context";
-import { useAuth } from "@/context/auth-context";
+import { CustomerMenu } from "@/components/storefront/customer-menu";
 
 export function StorefrontHeader({brand="SHOP.CO",logo,logoAlt,links=[]}:{brand?:string;logo?:string;logoAlt?:string;links?:{id:string;data:{label?:string;url?:string}}[]}) {
   const navigation=links.length ? links : [{id:"shop",data:{url:"/products",label:"Shop"}},{id:"categories",data:{url:"/categories",label:"Categories"}}];
   const router = useRouter();
   const { totalItems } = useCart();
-  const { isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -99,14 +97,7 @@ export function StorefrontHeader({brand="SHOP.CO",logo,logoAlt,links=[]}:{brand?
             )}
           </Link>
 
-          {/* Account Icon */}
-          <Link
-            href={isAuthenticated ? "/account" : "/login"}
-            className="p-1 text-black hover:text-zinc-600 transition-colors"
-            aria-label="Customer Account"
-          >
-            <User className="h-6 w-6" />
-          </Link>
+          <CustomerMenu />
         </div>
       </div>
 

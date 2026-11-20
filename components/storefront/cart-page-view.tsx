@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
@@ -64,7 +66,7 @@ export function CartPageView() {
     <div className="bg-white pb-12 sm:pb-20">
       {/* Outer 1440px Container */}
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 py-4 sm:py-6">
-        {loading && <p role="status">Loading cart…</p>}
+        {loading && <Preloader label="Loading cart" compact />}
         {error && <p role="alert" className="my-3 text-red-800">{error}</p>}
         {/* Breadcrumb: Home > Cart */}
         <nav

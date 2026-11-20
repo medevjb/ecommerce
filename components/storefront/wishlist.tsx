@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -93,7 +95,7 @@ function WishlistContents() {
 
   return <section className="mx-auto max-w-6xl space-y-5 px-5 py-12">
     <h1 className="text-3xl font-bold">My wishlist</h1>
-    {!items && !error && <p role="status">Loading wishlist…</p>}
+    {!items && !error && <Preloader label="Loading wishlist" compact />}
     {error && <p role="alert" className="text-red-800">{error} <button className="underline" onClick={() => {setError(""); setReload((value) => value + 1);}}>Retry</button></p>}
     {items?.length === 0 && <p>No saved products. <Link className="underline" href="/products">Browse the catalog</Link></p>}
     <div className="grid grid-cols-2 gap-5 md:grid-cols-4">

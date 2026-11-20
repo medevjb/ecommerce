@@ -22,6 +22,7 @@ const blocked = {id:"blocked", number:"ORD-2026-900001", status:"paid", payment_
 const eligible = {...blocked, id:"eligible", number:"ORD-2026-900002", cancellation_refund_pending:false};
 let cart = {items:[], subtotal_amount:0, discount_amount:0, total_amount:0, conflicts:[]};
 let sentVariant;
+let savedAddresses = [];
 let staffTransition;
 let browser;
 let serverProcess;
@@ -36,7 +37,27 @@ const fixture = createServer(async (request, response) => {
   if (path === "/products/demo-shirt/related" || path === "/products/demo-shirt/reviews" || path === "/attributes") return send([]);
   if (path === "/storefront/settings") return send({name:"Demo Shop"});
   if (path === "/storefront/navigation") return send({header:[],footer:[],social:[]});
-  if (path === "/storefront/home") return send({announcements:[],hero_slides:[],sections:[],promotions:[],testimonials:[]});
+  if (path === "/storefront/home") return send({
+    announcements:[], hero_slides:[], promotions:[], testimonials:[],
+    sections:[{id:"styles",key:"dress-styles",data:{title:"Browse by Dress Style",strategy:"tiles"},entries:[{title:"Casual",link_url:"#"}]}],
+  });
+  if (path === "/categories") return send([{id:"styles",slug:"dress-styles",name:"Dress Styles",children:[{id:"casual",slug:"casual",name:"Casual",children:[]}]}]);
+  if (path === "/brands") return send([]);
+  if (path === "/products") return send([product]);
+  if (path === "/me" && request.headers.authorization === "Bearer smoke-customer") {
+    return send({id:"customer",name:"Demo Customer",email:"customer@example.test"});
+  }
+  if (path === "/me/addresses" && request.method === "GET") return send(savedAddresses);
+  if (path === "/me/addresses" && request.method === "POST") {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    const address = {...JSON.parse(Buffer.concat(chunks).toString()),id:"saved-address",is_default:true};
+    savedAddresses = [...savedAddresses,address];
+    return send(address,201);
+  }
+  if (path === "/checkout/preview") {
+    return send({subtotal_amount:3000,discount_amount:0,shipping_amount:500,tax_amount:0,total_amount:3500,can_checkout:true,conflicts:[]});
+  }
   if (path === "/cart" && request.method === "GET") return send(cart);
   if (path === "/cart/items" || path === "/admin/orders/eligible/transitions") {
     const chunks = [];
@@ -115,6 +136,64 @@ test("staff can advance eligible orders while cancellation refunds pause fulfilm
     await dialog.getByRole("button", {name:"Save changes"}).click();
     await page.getByText("Advance fulfillment completed.").waitFor();
     assert.deepEqual(staffTransition, {status:"processing"});
+  } finally {
+    await page.close();
+  }
+});
+
+test("dress-style tiles and shop filter buttons request the selected style", {timeout:30_000}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.goto(origin);
+    const tile = page.getByRole("link", {name:"Casual",exact:true});
+    assert.equal(await tile.getAttribute("href"), "/products?style=casual");
+    const filtered = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return url.pathname === "/api/catalog/products" && url.searchParams.get("style") === "casual";
+    });
+    await tile.click();
+    await filtered;
+    const style = page.getByRole("combobox", {name:"Dress Style"});
+    assert.equal(await style.inputValue(), "casual");
+    const unfiltered = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return url.pathname === "/api/catalog/products" && !url.searchParams.has("style");
+    });
+    await style.selectOption("");
+    await unfiltered;
+    assert.equal(await style.inputValue(), "");
+  } finally {
+    await page.close();
+  }
+});
+
+test("checkout accepts a one-time address or lets the customer save it", {timeout:30_000}, async () => {
+  const page = await browser.newPage();
+  try {
+    await page.addInitScript(() => localStorage.setItem("auth_token", "smoke-customer"));
+    await page.goto(origin + "/checkout");
+    await page.getByLabel("Customer profile").click();
+    await page.getByRole("navigation", {name:"Profile shortcuts"}).getByRole("link", {name:"Account overview"}).waitFor();
+    await page.keyboard.press("Escape");
+    assert.equal(await page.getByRole("button", {name:"Pay by card"}).isDisabled(), true);
+    await page.getByLabel("Street address").fill("12 Test Lane");
+    await page.getByLabel("City", {exact:true}).fill("Austin");
+    await page.getByLabel("Postal code").fill("78701");
+    const preview = () => page.waitForRequest((request) => new URL(request.url()).pathname === "/api/commerce/checkout/preview");
+    const newAddress = preview();
+    await page.getByRole("button", {name:"Use this address"}).click();
+    assert.equal((await newAddress).postDataJSON().address.line1, "12 Test Lane");
+    await page.getByText("Use for this order only").waitFor();
+    await page.getByRole("button", {name:"Pay $35.00"}).waitFor();
+    assert.equal(savedAddresses.length, 0);
+
+    await page.getByRole("button", {name:"Edit one-time address"}).click();
+    await page.getByLabel("Save to my address book").check();
+    const savedAddress = preview();
+    await page.getByRole("button", {name:"Use this address"}).click();
+    assert.deepEqual((await savedAddress).postDataJSON(), {address_id:"saved-address"});
+    assert.equal(await page.getByRole("radio").isChecked(), true);
+    assert.equal(savedAddresses.length, 1);
   } finally {
     await page.close();
   }

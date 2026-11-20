@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, UserRound } from "lucide-react";
 import { ApiError, backend } from "@/lib/staff-api";
 import { customerReturnQuery } from "@/lib/customer-return";
@@ -15,7 +15,6 @@ export default function RegisterPage() {
 }
 
 function RegisterForm() {
-  const router = useRouter();
   const returnQuery = customerReturnQuery(useSearchParams());
   const returnParams = new URLSearchParams(returnQuery);
   const loginHref = returnParams.size ? "/login?" + returnParams.toString() : "/login";
@@ -36,12 +35,17 @@ function RegisterForm() {
 
     setIsLoading(true);
     try {
-      await backend("/api/auth/register", { method: "POST", body: {
+      const { data } = await backend<{ verification_token: string }>("/api/auth/register", { method: "POST", body: {
         name: [form.get("first_name"), form.get("last_name")].join(" ").trim(),
         email: form.get("email"), password, password_confirmation: confirmation,
       } });
+      if (!data?.verification_token) {
+        throw new Error("Your account was created, but the verification session was missing. Please sign in to request a new code.");
+      }
+      sessionStorage.setItem("email_verification_token", data.verification_token);
       const verificationParams = new URLSearchParams({ ...returnQuery, email: String(form.get("email") ?? "") });
-      router.replace(`/verify-email?${verificationParams.toString()}`);
+      verificationParams.set("flow", "account");
+      window.location.assign(new URL(`/verify-email?${verificationParams.toString()}`, window.location.origin));
     } catch (failure) {
       if (failure instanceof ApiError && Object.keys(failure.fields).length > 0) {
         const details = Object.entries(failure.fields).flatMap(([field, messages]) => messages.map((message) => {

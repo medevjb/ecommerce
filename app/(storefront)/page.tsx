@@ -1,3 +1,4 @@
+import { Preloader } from "@/components/shared/preloader";
 import { StorefrontImage as Image } from "@/components/storefront/storefront-image";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -41,7 +42,7 @@ async function HomeContent() {
       </div>
     </section>)}
     {home.sections.filter(({data})=>data.strategy==="brands").map(({id,data,entries})=><BrandsBanner key={id} title={data.title} brands={entries as StorefrontBrand[]} />)}
-    {home.sections.filter(({key,data})=>key!=="featured-categories" && data.strategy!=="brands").map(({id,data,entries})=>{
+    {home.sections.filter(({key,data})=>key!=="featured-categories" && data.strategy!=="brands").map(({id,key:sectionKey,data,entries})=>{
       if(data.strategy==="new_arrivals"||data.strategy==="top_selling"||data.strategy==="curated"){
         const items=(entries as CatalogProduct[]).map((product)=>adaptProduct(product));
         const Component=data.strategy==="top_selling"?TopSellingSection:NewArrivalsSection;
@@ -50,7 +51,20 @@ async function HomeContent() {
       if (!entries.length) return null;
       if(data.strategy==="tiles")return <section id="dress-styles" key={id} className="mx-auto my-10 w-full max-w-[1360px] rounded-[30px] bg-zinc-100 p-5 sm:p-10">
         <h2 className="mb-6 text-center text-3xl font-black uppercase">{data.title}</h2>
-        <div className="grid gap-4 sm:grid-cols-2">{(entries as Tile[]).map((tile,index)=><Link key={index} href={tile.link_url??"/products"} className="relative min-h-44 overflow-hidden rounded-2xl bg-white"><span className="absolute left-5 top-5 z-10 rounded-lg bg-white/85 px-2 text-xl font-bold">{tile.title}</span>{tile.image_url&&<Image src={tile.image_url} alt={tile.image_alt??""} fill unoptimized className="object-cover object-right" sizes="50vw"/>}</Link>)}</div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {(entries as Tile[]).map((tile, index) => {
+            const slug = tile.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            const link = tile.link_url?.trim();
+            const legacyLink = !link || link === "#" || link === "/products" || link === `/products?category=${slug}`;
+            const href = sectionKey === "dress-styles" && legacyLink && slug ? `/products?style=${encodeURIComponent(slug)}` : link || "/products";
+            return (
+              <Link key={index} href={href} className="group relative min-h-44 overflow-hidden rounded-2xl bg-white focus-visible:outline-2 focus-visible:outline-offset-4">
+                <span className="absolute left-5 top-5 z-10 rounded-lg bg-white/90 px-2 text-xl font-bold">{tile.title}</span>
+                {tile.image_url && <Image src={tile.image_url} alt="" fill unoptimized className="pointer-events-none object-cover object-right motion-safe:transition-transform motion-safe:group-hover:scale-105" sizes="(min-width: 640px) 50vw, 100vw" />}
+              </Link>
+            );
+          })}
+        </div>
       </section>;
       return <section key={id} className="mx-auto w-full max-w-[1440px] px-5 py-8 sm:px-10"><h2 className="mb-4 text-2xl font-bold">{data.title}</h2><div className="flex flex-wrap gap-3">{(entries as {id:string;name:string;slug:string}[]).map((entry)=><Link className="rounded-full border border-zinc-300 px-4 py-2" key={entry.id} href={"/products?category="+encodeURIComponent(entry.slug)}>{entry.name}</Link>)}</div></section>;
     })}
@@ -58,4 +72,4 @@ async function HomeContent() {
     <CustomerReviewsSection testimonials={home.testimonials} />
   </div>;
 }
-export default function HomePage() { return <Suspense fallback={<p className="p-12" role="status">Loading storefront…</p>}><HomeContent /></Suspense>; }
+export default function HomePage() { return <Suspense fallback={<Preloader label="Loading storefront" compact />}><HomeContent /></Suspense>; }

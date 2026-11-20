@@ -12,6 +12,7 @@ type LoginResult = {
   dashboard?: "staff" | "customer";
   email_verification_required?: boolean;
   email?: string;
+  verification_token?: string;
   access_token?: string;
   challenge_token?: string;
   user?: Staff;
@@ -49,9 +50,11 @@ function LoginForm() {
           ? { challenge_token: challenge, code: String(form.get("code")).trim() }
           : { email: form.get("email"), password: form.get("password") },
       });
-      if (data.email_verification_required && data.email) {
+      if (data.email_verification_required && data.email && data.verification_token) {
+        sessionStorage.setItem("email_verification_token", data.verification_token);
         const params = new URLSearchParams({ ...returnQuery, email: data.email });
-        router.replace(`/verify-email?${params.toString()}`);
+        params.set("flow", "account");
+        window.location.assign(new URL(`/verify-email?${params.toString()}`, window.location.origin));
         return;
       }
       if (data.challenge_token) {

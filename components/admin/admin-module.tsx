@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -163,7 +165,7 @@ function Module({ section, sectionKey, parent, root, openCreate }: {section:Sect
     </form>}
     {notice && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{notice}</p>}
     {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
-    {!error && result === undefined && <p role="status" className="rounded-2xl border border-[#ebe8f2] bg-white p-6 text-sm text-slate-600">Loading {section.title.toLowerCase()}…</p>}
+    {!error && result === undefined && <Preloader label={`Loading ${section.title.toLowerCase()}`} compact />}
     {result !== undefined && sectionKey === "settings" && <AccountSettings profile={result as Staff}
       onSecurityAction={(action) => setTask({action})} onProfileSaved={setStaffProfile} />}
     {result !== undefined && sectionKey === "site-settings" && <SiteSettings settings={record(record(result).data) as Record<string,string | null>} editable={permitted(staff,"updateSiteSettings")} />}
@@ -343,7 +345,7 @@ function ActionDialog({task, detail, parent, sectionKey, onClose, onSaved}: {tas
         skipLabel={createdProductId ? "Skip variants" : "Close"}
         onFinish={onClose}
         onSaved={() => onSaved("Variant options saved.")}
-      /> : loading ? <p role="status">Loading record…</p> : task.inspect ? <Details data={base} /> : showResponse ? <><p className="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">Save any recovery codes securely before closing.</p><Details data={response} />{operationKey === "confirmStaffTwoFactor" && <Link className={primary} href="/login">Sign in again</Link>}</> :
+      /> : loading ? <Preloader label="Loading record" compact /> : task.inspect ? <Details data={base} /> : showResponse ? <><p className="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">Save any recovery codes securely before closing.</p><Details data={response} />{operationKey === "confirmStaffTwoFactor" && <Link className={primary} href="/login">Sign in again</Link>}</> :
       <form onSubmit={submit} className="space-y-4">
         {operationKey === "transitionOrder" && !transition && <p role="alert">This order cannot advance while fulfilment is paused.</p>}
         {destructive && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-950">Review this action before confirming. It will update the live staff workspace.</p>}

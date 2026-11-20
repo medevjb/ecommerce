@@ -1,3 +1,4 @@
+import { Preloader } from "@/components/shared/preloader";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { StorefrontHeader } from "@/components/storefront/header";
@@ -15,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function StorefrontLayout({children}:{children:React.ReactNode}) {
   return <div className="flex min-h-screen flex-col bg-white text-black">
     <Suspense fallback={<StorefrontHeader />}><StoreHeader /></Suspense>
-    <main className="flex-1"><Suspense fallback={<p className="p-6" role="status">Loading storefront…</p>}><StoreMedia>{children}</StoreMedia></Suspense></main>
+    <main className="flex-1"><Suspense fallback={<Preloader label="Loading storefront" compact />}><StoreMedia>{children}</StoreMedia></Suspense></main>
     <Suspense fallback={<StorefrontFooter />}><StoreFooter /></Suspense>
   </div>;
 }

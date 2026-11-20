@@ -16,6 +16,7 @@ export function AccountSidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
+  const initials = user?.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const links = [
     { href: "/account", label: "Dashboard", icon: LayoutDashboard },
     { href: "/account/orders", label: "Orders & Tracking", icon: Package },
@@ -28,15 +29,15 @@ export function AccountSidebar() {
       <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
         {/* User Card */}
         <div className="border-b border-zinc-100 pb-4 mb-4 dark:border-zinc-800">
-          <p className="text-xs text-zinc-500">Signed in as</p>
+          <span aria-hidden="true" className="mb-3 grid size-11 place-items-center rounded-full bg-zinc-900 text-sm font-semibold text-white">{initials}</span>
           <p className="font-semibold text-zinc-900 dark:text-white truncate">
             {user?.name || "Valued Customer"}
           </p>
-          <p className="text-xs text-zinc-400 truncate">{user?.email || "customer@example.com"}</p>
+          <p className="text-xs text-zinc-400 truncate">{user?.email}</p>
         </div>
 
         {/* Nav Links */}
-        <nav className="space-y-1">
+        <nav aria-label="Customer account" className="space-y-1">
           {links.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -44,6 +45,7 @@ export function AccountSidebar() {
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive

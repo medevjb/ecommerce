@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Layers, Plus, X } from "lucide-react";
@@ -114,7 +116,7 @@ export default function VariantBuilder({ productId, productName, baseSku, skipLa
       <div><p className="font-semibold">{productName ? `${productName} is saved as a draft` : "Choose the options you sell"}</p><p className="mt-1 text-sm text-slate-700">Variants are optional. Your product already has a default SKU. Select more than one color or size to build combinations, then remove any you don’t sell.</p></div>
     </div>
     {loadError ? <div role="alert" className="text-sm text-red-800">{loadError} <button className="font-semibold underline" onClick={() => { setLoadError(""); setAttempt((value) => value + 1); }}>Retry</button></div> :
-      !attributes ? <p role="status" className="text-sm text-slate-600">Loading catalog options…</p> :
+      !attributes ? <Preloader label="Loading catalog options" compact /> :
       attributes.length === 0 ? <p className="text-sm text-slate-700">No active options are available. Add or activate values in <Link className="font-semibold text-violet-700 underline" href="/admin/attributes">Attributes</Link> to create variants.</p> :
       <div className="space-y-4">
         {attributes.map((attribute) => <fieldset key={attribute.id} disabled={busy}>

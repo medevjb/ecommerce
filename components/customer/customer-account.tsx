@@ -1,5 +1,9 @@
 "use client";
 
+import { ArrowUpRight, Heart, MapPin, Package, UserRound } from "lucide-react";
+
+import { Preloader } from "@/components/shared/preloader";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
@@ -28,13 +32,36 @@ export function CustomerGuard({children}:{children:ReactNode}) {
       }
     }
   }, [user, isLoading, pathname, router]);
-  return user&&!isLoading ? children : <p role="status" className="p-6">Opening your account…</p>;
+  return user&&!isLoading ? children : <Preloader label="Opening your account" compact />;
 }
 
 export function CustomerHome() {
   const {user}=useAuth();
-  return <div className="space-y-5"><section className="rounded-2xl bg-black p-6 text-white"><h2 className="text-xl font-semibold">Welcome back, {user?.name}</h2></section>
-    <div className="grid gap-4 sm:grid-cols-3">{[["orders","Orders"],["addresses","Saved addresses"],["profile","Profile and security"]].map(([slug,label])=><Link key={slug} href={`/account/${slug}`} className={box+" font-semibold hover:border-zinc-500"}>{label}</Link>)}</div></div>;
+  const destinations = [
+    { href: "/account/orders", title: "Orders", detail: "View purchases and track deliveries.", icon: Package },
+    { href: "/account/addresses", title: "Saved addresses", detail: "Manage delivery addresses for checkout.", icon: MapPin },
+    { href: "/account/profile", title: "Profile and security", detail: "Update your name or change your password.", icon: UserRound },
+    { href: "/wishlist", title: "Wishlist", detail: "Find the pieces you saved for later.", icon: Heart },
+  ];
+  return (
+    <div className="space-y-5">
+      <section className="rounded-3xl bg-zinc-950 px-6 py-10 text-white sm:px-9">
+        <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Welcome back, {user?.name}</h2>
+        <Link href="/products" className="mt-5 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black">
+          Continue shopping <ArrowUpRight aria-hidden="true" className="size-4" />
+        </Link>
+      </section>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {destinations.map(({ href, title, detail, icon: Icon }) => (
+          <Link key={href} href={href} className={box + " group flex items-start gap-4 transition-shadow hover:shadow-md"}>
+            <Icon aria-hidden="true" className="size-10 shrink-0 rounded-full bg-zinc-100 p-2.5" />
+            <span className="flex-1"><strong className="block">{title}</strong><span className="mt-1 block text-sm text-zinc-600">{detail}</span></span>
+            <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-zinc-500 group-hover:text-black" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function CustomerProfile() {
@@ -75,6 +102,29 @@ export function CustomerProfile() {
 export type Address = {id:string;recipient:string;line1:string;line2?:string;city:string;region?:string;postal_code:string;country:string;phone?:string;is_default:boolean};
 const addressFields=[["recipient","Recipient",true],["line1","Street address",true],["line2","Apartment or suite",false],["city","City",true],["region","State or region",false],["postal_code","Postal code",true],["country","Country code (two letters)",true],["phone","Phone",false]] as const;
 
+export type ShippingAddress = Omit<Address, "id" | "is_default">;
+
+export function readShippingAddress(form: FormData): ShippingAddress {
+  const value = (key: string) => String(form.get(key) ?? "").trim();
+  return {
+    recipient: value("recipient"), line1: value("line1"), line2: value("line2") || undefined,
+    city: value("city"), region: value("region") || undefined, postal_code: value("postal_code"),
+    country: value("country").toUpperCase(), phone: value("phone") || undefined,
+  };
+}
+
+export function ShippingAddressFields({ address }: { address?: Partial<ShippingAddress> }) {
+  const autocomplete = { recipient: "name", line1: "address-line1", line2: "address-line2", city: "address-level2", region: "address-level1", postal_code: "postal-code", country: "country", phone: "tel" };
+  return addressFields.map(([name, label, required]) => (
+    <label key={name} className="block text-sm font-medium">
+      {label}
+      <input className={field} name={name} required={required} autoComplete={`shipping ${autocomplete[name]}`}
+        type={name === "phone" ? "tel" : "text"} pattern={name === "country" ? "[A-Za-z]{2}" : undefined}
+        maxLength={name === "country" ? 2 : undefined} defaultValue={address?.[name] ?? (name === "country" ? "US" : "")} />
+    </label>
+  ));
+}
+
 export function CustomerAddresses() {
   const [addresses,setAddresses]=useState<Address[]>();
   const [edit,setEdit]=useState<Address | "new">();
@@ -97,11 +147,11 @@ export function CustomerAddresses() {
   return <div className="space-y-5"><div className="flex flex-wrap justify-between gap-3"><h2 className="text-2xl font-bold">Saved addresses</h2><button className={action} onClick={()=>setEdit("new")}>Add address</button></div>
     {error&&<p role="alert" className="text-red-800">{error}</p>}
     {edit&&<form key={edit==="new"?"new":edit.id} className={box+" grid gap-3 sm:grid-cols-2"} onSubmit={(event)=>modify(edit==="new"?"POST":"PATCH",edit==="new"?undefined:edit.id,event)}>
-      {addressFields.map(([key,label,required])=><label key={key} className="block text-sm">{label}<input className={field} name={key} required={required} maxLength={key==="country"?2:undefined} defaultValue={edit==="new"?key==="country"?"US":"":edit[key]??""}/></label>)}
+      <ShippingAddressFields address={edit === "new" ? undefined : edit} />
       <label className="text-sm"><input type="checkbox" name="is_default" defaultChecked={edit!=="new"&&edit.is_default}/> Default address</label>
       <div className="flex gap-3"><button className={action} disabled={pending}>Save address</button><button type="button" onClick={()=>setEdit(undefined)}>Cancel</button></div>
     </form>}
-    {!addresses&&!error&&<p role="status">Loading addresses…</p>}
+    {!addresses&&!error&&<Preloader label="Loading addresses" compact />}
     {addresses?.length===0&&<p>No saved addresses yet.</p>}
     {addresses?.map((address)=><article key={address.id} className={box}><h3 className="font-semibold">{address.recipient} {address.is_default&&<span className="text-xs text-zinc-600">Default</span>}</h3><p className="mt-2 text-sm">{[address.line1,address.line2,address.city,address.region,address.postal_code,address.country].filter(Boolean).join(", ")}</p><div className="mt-3 flex gap-4 text-sm"><button onClick={()=>setEdit(address)} className="underline">Edit</button><button disabled={pending} className="text-red-800 underline" onClick={()=>{if(confirm("Remove this saved address?"))void modify("DELETE",address.id);}}>Remove</button></div></article>)}
   </div>;
@@ -168,7 +218,7 @@ export function CustomerOrders() {
     <h2 className="text-2xl font-bold">Orders and tracking</h2>
     {error && <p role="alert" className="text-red-800">{error}</p>}
     {notice && <p role="status" className="text-green-800">{notice}</p>}
-    {!orders && !error && <p role="status">Loading orders…</p>}
+    {!orders && !error && <Preloader label="Loading orders" compact />}
     {orders?.length === 0 && <p>You have no orders yet.</p>}
     {orders?.map((order) => <article className={box} key={order.id}>
       <div className="flex flex-wrap justify-between gap-3">

@@ -1,5 +1,7 @@
 "use client";
 
+import { Preloader } from "@/components/shared/preloader";
+
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -658,7 +660,7 @@ function ShopCatalog({ query }: { query: ReturnType<typeof useSearchParams> }) {
             </div>
           </div>
 
-          {loading && <p role="status">Loading products…</p>}
+          {loading && <Preloader label="Loading products" compact />}
           {error && (
             <div
               role="alert"
