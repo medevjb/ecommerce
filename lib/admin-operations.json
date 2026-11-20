@@ -1,0 +1,3035 @@
+{
+  "listAuditLogs": {
+    "path": "/audit-logs",
+    "method": "GET",
+    "permission": "audit.view",
+    "filters": [
+      {
+        "name": "event",
+        "label": "Event",
+        "kind": "text"
+      },
+      {
+        "name": "user_id",
+        "label": "User id",
+        "kind": "number",
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "from",
+        "label": "From",
+        "kind": "date"
+      },
+      {
+        "name": "to",
+        "label": "To",
+        "kind": "date"
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "created_at",
+          "id",
+          "event"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      }
+    ]
+  },
+  "showStaffProfile": {
+    "path": "/me",
+    "method": "GET"
+  },
+  "updateStaffProfile": {
+    "path": "/me",
+    "method": "PATCH",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "logoutStaff": {
+    "path": "/auth/logout",
+    "method": "POST"
+  },
+  "requestStaffPasswordReset": {
+    "path": "/auth/forgot-password",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "email",
+        "label": "Email",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "resetStaffPassword": {
+    "path": "/auth/reset-password",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "email",
+        "label": "Email",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "kind": "password",
+        "required": true,
+        "hint": "Include lower and upper case letters, a number, and a symbol. Maximum 72 UTF-8 bytes."
+      },
+      {
+        "name": "password_confirmation",
+        "label": "Password confirmation",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "token",
+        "label": "Token",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "changeStaffPassword": {
+    "path": "/auth/change-password",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "password",
+        "label": "Password",
+        "kind": "password",
+        "required": true,
+        "hint": "Include lower and upper case letters, a number, and a symbol. Maximum 72 UTF-8 bytes."
+      },
+      {
+        "name": "password_confirmation",
+        "label": "Password confirmation",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "current_password",
+        "label": "Current password",
+        "kind": "password",
+        "required": true
+      }
+    ]
+  },
+  "setupStaffTwoFactor": {
+    "path": "/auth/2fa/setup",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "current_password",
+        "label": "Current password",
+        "kind": "password",
+        "required": true
+      }
+    ]
+  },
+  "confirmStaffTwoFactor": {
+    "path": "/auth/2fa/confirm",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "verifyStaffTwoFactorChallenge": {
+    "path": "/auth/2fa/challenge",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "challenge_token",
+        "label": "Challenge token",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "replaceStaffRecoveryCodes": {
+    "path": "/auth/2fa/recovery",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "current_password",
+        "label": "Current password",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "disableStaffTwoFactor": {
+    "path": "/auth/2fa/disable",
+    "method": "POST",
+    "fields": [
+      {
+        "name": "current_password",
+        "label": "Current password",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "listPermissions": {
+    "path": "/permissions",
+    "method": "GET",
+    "permission": "roles.view"
+  },
+  "listRoles": {
+    "path": "/roles",
+    "method": "GET",
+    "permission": "roles.view"
+  },
+  "createRole": {
+    "path": "/roles",
+    "method": "POST",
+    "permission": "roles.manage",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "getRole": {
+    "path": "/roles/{roleSlug}",
+    "method": "GET",
+    "permission": "roles.view"
+  },
+  "updateRole": {
+    "path": "/roles/{roleSlug}",
+    "method": "PATCH",
+    "permission": "roles.manage",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "deleteRole": {
+    "path": "/roles/{roleSlug}",
+    "method": "DELETE",
+    "permission": "roles.manage"
+  },
+  "replaceRolePermissions": {
+    "path": "/roles/{roleSlug}/permissions",
+    "method": "PUT",
+    "permission": "roles.manage",
+    "fields": [
+      {
+        "name": "permissions",
+        "label": "Permissions",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listStaff": {
+    "path": "/staff",
+    "method": "GET",
+    "permission": "staff.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "created_at",
+          "name",
+          "email"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      }
+    ]
+  },
+  "createStaff": {
+    "path": "/staff",
+    "method": "POST",
+    "permission": "staff.manage",
+    "fields": [
+      {
+        "name": "email",
+        "label": "Email",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "kind": "password",
+        "required": true,
+        "hint": "Include lower and upper case letters, a number, and a symbol. Maximum 72 UTF-8 bytes."
+      },
+      {
+        "name": "password_confirmation",
+        "label": "Password confirmation",
+        "kind": "password",
+        "required": true
+      },
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "roles",
+        "label": "Roles",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "getStaff": {
+    "path": "/staff/{staff}",
+    "method": "GET",
+    "permission": "staff.view"
+  },
+  "updateStaff": {
+    "path": "/staff/{staff}",
+    "method": "PATCH",
+    "permission": "staff.manage",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "active",
+        "label": "Active",
+        "kind": "boolean"
+      }
+    ]
+  },
+  "replaceStaffRoles": {
+    "path": "/staff/{staff}/roles",
+    "method": "PUT",
+    "permission": "staff.manage",
+    "fields": [
+      {
+        "name": "roles",
+        "label": "Roles",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listActivityLogs": {
+    "path": "/activity-logs",
+    "method": "GET",
+    "permission": "audit.view",
+    "filters": [
+      {
+        "name": "event",
+        "label": "Event",
+        "kind": "text"
+      },
+      {
+        "name": "user_id",
+        "label": "User id",
+        "kind": "number",
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "from",
+        "label": "From",
+        "kind": "date"
+      },
+      {
+        "name": "to",
+        "label": "To",
+        "kind": "date"
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "created_at",
+          "id",
+          "event"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      }
+    ]
+  },
+  "listAdminCategory": {
+    "path": "/categories",
+    "method": "GET",
+    "permission": "categories.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "name",
+          "slug",
+          "sort_order",
+          "created_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createCategory": {
+    "path": "/categories",
+    "method": "POST",
+    "permission": "categories.create",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "parent_id",
+        "label": "Parent id",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "image_url",
+        "label": "Image url",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_title",
+        "label": "Seo title",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_description",
+        "label": "Seo description",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "getAdminCategory": {
+    "path": "/categories/{category}",
+    "method": "GET",
+    "permission": "categories.view"
+  },
+  "updateCategory": {
+    "path": "/categories/{category}",
+    "method": "PATCH",
+    "permission": "categories.update",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text"
+      },
+      {
+        "name": "parent_id",
+        "label": "Parent id",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "image_url",
+        "label": "Image url",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_title",
+        "label": "Seo title",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_description",
+        "label": "Seo description",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "deleteCategory": {
+    "path": "/categories/{category}",
+    "method": "DELETE",
+    "permission": "categories.delete"
+  },
+  "restoreCategory": {
+    "path": "/categories/{category}/restore",
+    "method": "POST",
+    "permission": "categories.delete"
+  },
+  "setCategoryStatus": {
+    "path": "/categories/{category}/status",
+    "method": "PATCH",
+    "permission": "categories.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "reorderCategory": {
+    "path": "/categories/reorder",
+    "method": "PATCH",
+    "permission": "categories.update",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      },
+      {
+        "name": "parent_id",
+        "label": "Parent id",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "bulkCategory": {
+    "path": "/categories/bulk-actions",
+    "method": "POST",
+    "permission": "categories.view",
+    "fields": [
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate",
+          "delete",
+          "restore"
+        ]
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listAdminBrand": {
+    "path": "/brands",
+    "method": "GET",
+    "permission": "brands.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "name",
+          "slug",
+          "sort_order",
+          "created_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createBrand": {
+    "path": "/brands",
+    "method": "POST",
+    "permission": "brands.create",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "logo_url",
+        "label": "Logo url",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "getAdminBrand": {
+    "path": "/brands/{brand}",
+    "method": "GET",
+    "permission": "brands.view"
+  },
+  "updateBrand": {
+    "path": "/brands/{brand}",
+    "method": "PATCH",
+    "permission": "brands.update",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text"
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "logo_url",
+        "label": "Logo url",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "deleteBrand": {
+    "path": "/brands/{brand}",
+    "method": "DELETE",
+    "permission": "brands.delete"
+  },
+  "restoreBrand": {
+    "path": "/brands/{brand}/restore",
+    "method": "POST",
+    "permission": "brands.delete"
+  },
+  "setBrandStatus": {
+    "path": "/brands/{brand}/status",
+    "method": "PATCH",
+    "permission": "brands.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "reorderBrand": {
+    "path": "/brands/reorder",
+    "method": "PATCH",
+    "permission": "brands.update",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "bulkBrand": {
+    "path": "/brands/bulk-actions",
+    "method": "POST",
+    "permission": "brands.view",
+    "fields": [
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate",
+          "delete",
+          "restore"
+        ]
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listAdminAttribute": {
+    "path": "/attributes",
+    "method": "GET",
+    "permission": "attributes.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "name",
+          "slug",
+          "sort_order",
+          "created_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createAttribute": {
+    "path": "/attributes",
+    "method": "POST",
+    "permission": "attributes.create",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "getAdminAttribute": {
+    "path": "/attributes/{attribute}",
+    "method": "GET",
+    "permission": "attributes.view"
+  },
+  "updateAttribute": {
+    "path": "/attributes/{attribute}",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text"
+      }
+    ]
+  },
+  "deleteAttribute": {
+    "path": "/attributes/{attribute}",
+    "method": "DELETE",
+    "permission": "attributes.delete"
+  },
+  "restoreAttribute": {
+    "path": "/attributes/{attribute}/restore",
+    "method": "POST",
+    "permission": "attributes.delete"
+  },
+  "setAttributeStatus": {
+    "path": "/attributes/{attribute}/status",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "reorderAttribute": {
+    "path": "/attributes/reorder",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "bulkAttribute": {
+    "path": "/attributes/bulk-actions",
+    "method": "POST",
+    "permission": "attributes.view",
+    "fields": [
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate",
+          "delete",
+          "restore"
+        ]
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listAdminAttributeValue": {
+    "path": "/attributes/{attribute}/values",
+    "method": "GET",
+    "permission": "attributes.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "name",
+          "slug",
+          "sort_order",
+          "created_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createAttributeValue": {
+    "path": "/attributes/{attribute}/values",
+    "method": "POST",
+    "permission": "attributes.create",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "getAdminAttributeValue": {
+    "path": "/attributes/{attribute}/values/{value}",
+    "method": "GET",
+    "permission": "attributes.view"
+  },
+  "updateAttributeValue": {
+    "path": "/attributes/{attribute}/values/{value}",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text"
+      }
+    ]
+  },
+  "deleteAttributeValue": {
+    "path": "/attributes/{attribute}/values/{value}",
+    "method": "DELETE",
+    "permission": "attributes.delete"
+  },
+  "restoreAttributeValue": {
+    "path": "/attributes/{attribute}/values/{value}/restore",
+    "method": "POST",
+    "permission": "attributes.delete"
+  },
+  "setAttributeValueStatus": {
+    "path": "/attributes/{attribute}/values/{value}/status",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "reorderAttributeValue": {
+    "path": "/attributes/{attribute}/values/reorder",
+    "method": "PATCH",
+    "permission": "attributes.update",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "bulkAttributeValue": {
+    "path": "/attributes/{attribute}/values/bulk-actions",
+    "method": "POST",
+    "permission": "attributes.view",
+    "fields": [
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate",
+          "delete",
+          "restore"
+        ]
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listAdminProducts": {
+    "path": "/products",
+    "method": "GET",
+    "permission": "products.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "draft",
+          "active",
+          "inactive",
+          "archived"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "name",
+          "regular_amount",
+          "created_at",
+          "published_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createProduct": {
+    "path": "/products",
+    "method": "POST",
+    "permission": "products.create",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "short_description",
+        "label": "Short description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "regular_amount",
+        "label": "Regular amount (USD cents)",
+        "kind": "number",
+        "required": true,
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "sale_amount",
+        "label": "Sale amount (USD cents)",
+        "kind": "number",
+        "nullable": true,
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "featured",
+        "label": "Featured",
+        "kind": "boolean"
+      },
+      {
+        "name": "seo_title",
+        "label": "Seo title",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_description",
+        "label": "Seo description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "sku",
+        "label": "Sku",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "category_ids",
+        "label": "Category ids",
+        "kind": "list"
+      },
+      {
+        "name": "brand_id",
+        "label": "Brand id",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "getAdminProduct": {
+    "path": "/products/{product}",
+    "method": "GET",
+    "permission": "products.view"
+  },
+  "updateProduct": {
+    "path": "/products/{product}",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "kind": "text"
+      },
+      {
+        "name": "slug",
+        "label": "Slug",
+        "kind": "text"
+      },
+      {
+        "name": "description",
+        "label": "Description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "short_description",
+        "label": "Short description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "regular_amount",
+        "label": "Regular amount (USD cents)",
+        "kind": "number",
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "sale_amount",
+        "label": "Sale amount (USD cents)",
+        "kind": "number",
+        "nullable": true,
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "featured",
+        "label": "Featured",
+        "kind": "boolean"
+      },
+      {
+        "name": "seo_title",
+        "label": "Seo title",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "seo_description",
+        "label": "Seo description",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "category_ids",
+        "label": "Category ids",
+        "kind": "list"
+      },
+      {
+        "name": "brand_id",
+        "label": "Brand id",
+        "kind": "text",
+        "nullable": true
+      }
+    ]
+  },
+  "deleteProduct": {
+    "path": "/products/{product}",
+    "method": "DELETE",
+    "permission": "products.delete"
+  },
+  "updateProductStatus": {
+    "path": "/products/{product}/status",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "draft",
+          "active",
+          "inactive",
+          "archived"
+        ]
+      }
+    ]
+  },
+  "restoreProduct": {
+    "path": "/products/{product}/restore",
+    "method": "POST",
+    "permission": "products.delete"
+  },
+  "bulkProducts": {
+    "path": "/products/bulk-actions",
+    "method": "POST",
+    "permission": "products.view",
+    "fields": [
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate",
+          "delete",
+          "restore"
+        ]
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listProductVariants": {
+    "path": "/products/{product}/variants",
+    "method": "GET",
+    "permission": "products.view"
+  },
+  "createProductVariant": {
+    "path": "/products/{product}/variants",
+    "method": "POST",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "sku",
+        "label": "Sku",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "price_override_amount",
+        "label": "Price override amount (USD cents)",
+        "kind": "number",
+        "nullable": true,
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "option_ids",
+        "label": "Option ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "updateProductVariant": {
+    "path": "/products/{product}/variants/{variant}",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "sku",
+        "label": "Sku",
+        "kind": "text"
+      },
+      {
+        "name": "price_override_amount",
+        "label": "Price override amount (USD cents)",
+        "kind": "number",
+        "nullable": true,
+        "hint": "USD minor units.",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "option_ids",
+        "label": "Option ids",
+        "kind": "list"
+      }
+    ]
+  },
+  "deleteProductVariant": {
+    "path": "/products/{product}/variants/{variant}",
+    "method": "DELETE",
+    "permission": "products.delete"
+  },
+  "updateProductVariantStatus": {
+    "path": "/products/{product}/variants/{variant}/status",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "listProductImages": {
+    "path": "/products/{product}/images",
+    "method": "GET",
+    "permission": "products.view"
+  },
+  "uploadProductImage": {
+    "path": "/products/{product}/images",
+    "method": "POST",
+    "permission": "products.update",
+    "multipart": true,
+    "fields": [
+      {
+        "name": "image",
+        "label": "Image",
+        "kind": "file",
+        "required": true
+      },
+      {
+        "name": "alt_text",
+        "label": "Alt text",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "primary",
+        "label": "Primary",
+        "kind": "text",
+        "options": [
+          "0",
+          "1"
+        ]
+      }
+    ]
+  },
+  "replaceProductImage": {
+    "path": "/products/{product}/images/{image}/replace",
+    "method": "POST",
+    "permission": "products.update",
+    "multipart": true,
+    "fields": [
+      {
+        "name": "image",
+        "label": "Image",
+        "kind": "file",
+        "required": true
+      },
+      {
+        "name": "alt_text",
+        "label": "Alt text",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "primary",
+        "label": "Primary",
+        "kind": "text",
+        "options": [
+          "0",
+          "1"
+        ]
+      }
+    ]
+  },
+  "updateProductImage": {
+    "path": "/products/{product}/images/{image}",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "alt_text",
+        "label": "Alt text",
+        "kind": "text",
+        "nullable": true
+      },
+      {
+        "name": "primary",
+        "label": "Primary",
+        "kind": "boolean"
+      }
+    ]
+  },
+  "deleteProductImage": {
+    "path": "/products/{product}/images/{image}",
+    "method": "DELETE",
+    "permission": "products.delete"
+  },
+  "reorderProductImages": {
+    "path": "/products/{product}/images/reorder",
+    "method": "PATCH",
+    "permission": "products.update",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  },
+  "listInventory": {
+    "path": "/inventory",
+    "method": "GET",
+    "permission": "inventory.view",
+    "filters": [
+      {
+        "name": "low_stock",
+        "label": "Low stock",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      },
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      }
+    ]
+  },
+  "listInventoryMovements": {
+    "path": "/inventory/movements",
+    "method": "GET",
+    "permission": "inventory.view",
+    "filters": [
+      {
+        "name": "variant_id",
+        "label": "Variant id",
+        "kind": "text"
+      },
+      {
+        "name": "type",
+        "label": "Type",
+        "kind": "text",
+        "options": [
+          "adjustment",
+          "payment",
+          "restoration"
+        ]
+      }
+    ]
+  },
+  "adjustInventory": {
+    "path": "/inventory/adjustments",
+    "method": "POST",
+    "permission": "inventory.adjust",
+    "fields": [
+      {
+        "name": "variant_id",
+        "label": "Variant id",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "delta",
+        "label": "Delta",
+        "kind": "number",
+        "required": true,
+        "min": -4294967295,
+        "max": 4294967295,
+        "integer": true
+      },
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "idempotent": true
+  },
+  "listCoupons": {
+    "path": "/coupons",
+    "method": "GET",
+    "permission": "coupons.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "active",
+          "inactive"
+        ]
+      },
+      {
+        "name": "type",
+        "label": "Type",
+        "kind": "text",
+        "options": [
+          "percentage",
+          "fixed"
+        ]
+      },
+      {
+        "name": "sort_by",
+        "label": "Sort by",
+        "kind": "text",
+        "options": [
+          "code",
+          "created_at",
+          "ends_at"
+        ]
+      },
+      {
+        "name": "sort_direction",
+        "label": "Sort direction",
+        "kind": "text",
+        "options": [
+          "asc",
+          "desc"
+        ]
+      },
+      {
+        "name": "trashed",
+        "label": "Trashed",
+        "kind": "number",
+        "options": [
+          0,
+          1
+        ],
+        "integer": true
+      }
+    ]
+  },
+  "createCoupon": {
+    "path": "/coupons",
+    "method": "POST",
+    "permission": "coupons.manage",
+    "fields": [
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "type",
+        "label": "Type",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "percentage",
+          "fixed"
+        ]
+      },
+      {
+        "name": "value",
+        "label": "Value",
+        "kind": "number",
+        "required": true,
+        "hint": "Percentage (0.01 to 100, up to two decimals) or a fixed USD minor-unit integer."
+      },
+      {
+        "name": "minimum_amount",
+        "label": "Minimum amount (USD cents)",
+        "kind": "number",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "currency",
+        "label": "Currency",
+        "kind": "text",
+        "nullable": true,
+        "options": [
+          "USD"
+        ]
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "global_limit",
+        "label": "Global limit",
+        "kind": "number",
+        "nullable": true,
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "per_customer_limit",
+        "label": "Per customer limit",
+        "kind": "number",
+        "nullable": true,
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "product_ids",
+        "label": "Product ids",
+        "kind": "list"
+      },
+      {
+        "name": "category_ids",
+        "label": "Category ids",
+        "kind": "list"
+      }
+    ]
+  },
+  "getCoupon": {
+    "path": "/coupons/{coupon}",
+    "method": "GET",
+    "permission": "coupons.view"
+  },
+  "updateCoupon": {
+    "path": "/coupons/{coupon}",
+    "method": "PATCH",
+    "permission": "coupons.manage",
+    "fields": [
+      {
+        "name": "code",
+        "label": "Code",
+        "kind": "text"
+      },
+      {
+        "name": "type",
+        "label": "Type",
+        "kind": "text",
+        "options": [
+          "percentage",
+          "fixed"
+        ]
+      },
+      {
+        "name": "value",
+        "label": "Value",
+        "kind": "number",
+        "hint": "Percentage (0.01 to 100, up to two decimals) or a fixed USD minor-unit integer."
+      },
+      {
+        "name": "minimum_amount",
+        "label": "Minimum amount (USD cents)",
+        "kind": "number",
+        "min": 0,
+        "max": 9007199254740991,
+        "integer": true
+      },
+      {
+        "name": "currency",
+        "label": "Currency",
+        "kind": "text",
+        "nullable": true,
+        "options": [
+          "USD"
+        ]
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "global_limit",
+        "label": "Global limit",
+        "kind": "number",
+        "nullable": true,
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "per_customer_limit",
+        "label": "Per customer limit",
+        "kind": "number",
+        "nullable": true,
+        "min": 1,
+        "integer": true
+      },
+      {
+        "name": "product_ids",
+        "label": "Product ids",
+        "kind": "list"
+      },
+      {
+        "name": "category_ids",
+        "label": "Category ids",
+        "kind": "list"
+      }
+    ]
+  },
+  "deleteCoupon": {
+    "path": "/coupons/{coupon}",
+    "method": "DELETE",
+    "permission": "coupons.manage"
+  },
+  "updateCouponStatus": {
+    "path": "/coupons/{coupon}/status",
+    "method": "PATCH",
+    "permission": "coupons.manage",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "active",
+          "inactive"
+        ]
+      }
+    ]
+  },
+  "restoreCoupon": {
+    "path": "/coupons/{coupon}/restore",
+    "method": "POST",
+    "permission": "coupons.manage"
+  },
+  "bulkCoupons": {
+    "path": "/coupons/bulk-actions",
+    "method": "POST",
+    "permission": "coupons.manage",
+    "fields": [
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      },
+      {
+        "name": "action",
+        "label": "Action",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "activate",
+          "deactivate"
+        ]
+      }
+    ]
+  },
+  "listAdminOrders": {
+    "path": "/orders",
+    "method": "GET",
+    "permission": "orders.view",
+    "filters": [
+      {
+        "name": "number",
+        "label": "Number",
+        "kind": "text"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "pending",
+          "paid",
+          "processing",
+          "shipped",
+          "delivered",
+          "cancelled"
+        ]
+      }
+    ]
+  },
+  "getAdminOrder": {
+    "path": "/orders/{order}",
+    "method": "GET",
+    "permission": "orders.view"
+  },
+  "transitionOrder": {
+    "path": "/orders/{order}/transitions",
+    "method": "POST",
+    "permission": "orders.update_status",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "processing",
+          "shipped",
+          "delivered"
+        ]
+      },
+      {
+        "name": "shipping_carrier",
+        "label": "Shipping carrier",
+        "kind": "text"
+      },
+      {
+        "name": "tracking_number",
+        "label": "Tracking number",
+        "kind": "text"
+      }
+    ]
+  },
+  "cancelAdminOrder": {
+    "path": "/orders/{order}/cancel",
+    "method": "POST",
+    "permission": "orders.update_status",
+    "fields": [
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text"
+      }
+    ],
+    "idempotent": true
+  },
+  "listOrderRefunds": {
+    "path": "/orders/{order}/refunds",
+    "method": "GET",
+    "permission": "orders.refund"
+  },
+  "requestOrderRefund": {
+    "path": "/orders/{order}/refunds",
+    "method": "POST",
+    "permission": "orders.refund",
+    "fields": [
+      {
+        "name": "amount",
+        "label": "Amount (USD cents)",
+        "kind": "number",
+        "required": true,
+        "min": 1,
+        "max": 99999999,
+        "integer": true
+      },
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text",
+        "required": true
+      }
+    ],
+    "idempotent": true
+  },
+  "getShippingSettings": {
+    "path": "/shipping-settings",
+    "method": "GET",
+    "permission": "shipping.manage"
+  },
+  "updateShippingSettings": {
+    "path": "/shipping-settings",
+    "method": "PATCH",
+    "permission": "shipping.manage",
+    "fields": [
+      {
+        "name": "flat_shipping_amount",
+        "label": "Flat shipping amount (USD cents)",
+        "kind": "number",
+        "required": true,
+        "hint": "Flat shipping fee in USD cents. Zero enables free shipping.",
+        "min": 0,
+        "max": 99999999,
+        "integer": true
+      }
+    ]
+  },
+  "listCustomers": {
+    "path": "/customers",
+    "method": "GET",
+    "permission": "customers.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "name": "active",
+        "label": "Active",
+        "kind": "boolean"
+      }
+    ]
+  },
+  "getCustomer": {
+    "path": "/customers/{customer}",
+    "method": "GET",
+    "permission": "customers.view"
+  },
+  "listCustomerHistory": {
+    "path": "/customers/{customer}/orders",
+    "method": "GET",
+    "permission": "customers.view"
+  },
+  "updateCustomerStatus": {
+    "path": "/customers/{customer}/status",
+    "method": "PATCH",
+    "permission": "customers.manage",
+    "fields": [
+      {
+        "name": "active",
+        "label": "Active",
+        "kind": "boolean",
+        "required": true
+      },
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "getDashboard": {
+    "path": "/dashboard",
+    "method": "GET",
+    "permission": "reports.view"
+  },
+  "getSalesReport": {
+    "path": "/reports/sales",
+    "method": "GET",
+    "permission": "reports.view",
+    "filters": [
+      {
+        "name": "from",
+        "label": "From",
+        "kind": "date"
+      },
+      {
+        "name": "to",
+        "label": "To",
+        "kind": "date"
+      },
+      {
+        "name": "group_by",
+        "label": "Group by",
+        "kind": "text",
+        "options": [
+          "day",
+          "product",
+          "category"
+        ]
+      }
+    ]
+  },
+  "getLowStockReport": {
+    "path": "/reports/inventory",
+    "method": "GET",
+    "permission": "reports.view",
+    "filters": [
+      {
+        "name": "search",
+        "label": "Search",
+        "kind": "text"
+      }
+    ]
+  },
+  "getCouponReport": {
+    "path": "/reports/coupons",
+    "method": "GET",
+    "permission": "reports.view",
+    "filters": [
+      {
+        "name": "from",
+        "label": "From",
+        "kind": "date"
+      },
+      {
+        "name": "to",
+        "label": "To",
+        "kind": "date"
+      }
+    ]
+  },
+  "listBanner": {
+    "path": "/banners",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "createBanner": {
+    "path": "/banners",
+    "method": "POST",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.placement",
+        "label": "Placement",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "announcement",
+          "hero",
+          "promotion"
+        ]
+      },
+      {
+        "name": "data.title",
+        "label": "Title",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "data.body",
+        "label": "Body",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.image_url",
+        "label": "Image url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.image_alt",
+        "label": "Image alt",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.link_url",
+        "label": "Link url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.link_label",
+        "label": "Link label",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.stats",
+        "label": "Stats",
+        "kind": "json",
+        "required": false
+      }
+    ]
+  },
+  "readBanner": {
+    "path": "/banners/{content}",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "updateBanner": {
+    "path": "/banners/{content}",
+    "method": "PATCH",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text"
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.placement",
+        "label": "Placement",
+        "kind": "text",
+        "required": false,
+        "options": [
+          "announcement",
+          "hero",
+          "promotion"
+        ]
+      },
+      {
+        "name": "data.title",
+        "label": "Title",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "data.body",
+        "label": "Body",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.image_url",
+        "label": "Image url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.image_alt",
+        "label": "Image alt",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.link_url",
+        "label": "Link url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.link_label",
+        "label": "Link label",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.stats",
+        "label": "Stats",
+        "kind": "json",
+        "required": false
+      }
+    ]
+  },
+  "deleteBanner": {
+    "path": "/banners/{content}",
+    "method": "DELETE",
+    "permission": "content.manage"
+  },
+  "listHomepageSection": {
+    "path": "/homepage-sections",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "createHomepageSection": {
+    "path": "/homepage-sections",
+    "method": "POST",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.title",
+        "label": "Title",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "data.strategy",
+        "label": "Strategy",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "new_arrivals",
+          "top_selling",
+          "curated",
+          "categories",
+          "brands",
+          "tiles"
+        ]
+      },
+      {
+        "name": "data.limit",
+        "label": "Limit",
+        "kind": "number",
+        "min": 1,
+        "max": 24,
+        "integer": true,
+        "required": false
+      },
+      {
+        "name": "data.items",
+        "label": "Items",
+        "kind": "json",
+        "required": false
+      }
+    ]
+  },
+  "readHomepageSection": {
+    "path": "/homepage-sections/{content}",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "updateHomepageSection": {
+    "path": "/homepage-sections/{content}",
+    "method": "PATCH",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text"
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.title",
+        "label": "Title",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "data.strategy",
+        "label": "Strategy",
+        "kind": "text",
+        "required": false,
+        "options": [
+          "new_arrivals",
+          "top_selling",
+          "curated",
+          "categories",
+          "brands",
+          "tiles"
+        ]
+      },
+      {
+        "name": "data.limit",
+        "label": "Limit",
+        "kind": "number",
+        "min": 1,
+        "max": 24,
+        "integer": true,
+        "required": false
+      },
+      {
+        "name": "data.items",
+        "label": "Items",
+        "kind": "json",
+        "required": false
+      }
+    ]
+  },
+  "deleteHomepageSection": {
+    "path": "/homepage-sections/{content}",
+    "method": "DELETE",
+    "permission": "content.manage"
+  },
+  "listNavigationItem": {
+    "path": "/navigation",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "createNavigationItem": {
+    "path": "/navigation",
+    "method": "POST",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.placement",
+        "label": "Placement",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "header",
+          "footer",
+          "social"
+        ]
+      },
+      {
+        "name": "data.column",
+        "label": "Column",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.label",
+        "label": "Label",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "data.url",
+        "label": "Url",
+        "kind": "text",
+        "required": true,
+        "hint": "HTTP(S) URL or an absolute path within the storefront."
+      }
+    ]
+  },
+  "readNavigationItem": {
+    "path": "/navigation/{content}",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "updateNavigationItem": {
+    "path": "/navigation/{content}",
+    "method": "PATCH",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text"
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.placement",
+        "label": "Placement",
+        "kind": "text",
+        "required": false,
+        "options": [
+          "header",
+          "footer",
+          "social"
+        ]
+      },
+      {
+        "name": "data.column",
+        "label": "Column",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.label",
+        "label": "Label",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "data.url",
+        "label": "Url",
+        "kind": "text",
+        "required": false,
+        "hint": "HTTP(S) URL or an absolute path within the storefront."
+      }
+    ]
+  },
+  "deleteNavigationItem": {
+    "path": "/navigation/{content}",
+    "method": "DELETE",
+    "permission": "content.manage"
+  },
+  "listTestimonial": {
+    "path": "/testimonials",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "createTestimonial": {
+    "path": "/testimonials",
+    "method": "POST",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.author",
+        "label": "Author",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "data.quote",
+        "label": "Quote",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "data.source",
+        "label": "Source",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "editorial",
+          "customer_submission"
+        ]
+      },
+      {
+        "name": "data.image_url",
+        "label": "Image url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.image_alt",
+        "label": "Image alt",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      }
+    ]
+  },
+  "readTestimonial": {
+    "path": "/testimonials/{content}",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "updateTestimonial": {
+    "path": "/testimonials/{content}",
+    "method": "PATCH",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "key",
+        "label": "Key",
+        "kind": "text"
+      },
+      {
+        "name": "sort_order",
+        "label": "Sort order",
+        "kind": "number",
+        "integer": true
+      },
+      {
+        "name": "published",
+        "label": "Published",
+        "kind": "boolean"
+      },
+      {
+        "name": "starts_at",
+        "label": "Starts at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "ends_at",
+        "label": "Ends at",
+        "kind": "datetime",
+        "nullable": true
+      },
+      {
+        "name": "data.author",
+        "label": "Author",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "data.quote",
+        "label": "Quote",
+        "kind": "text",
+        "required": false
+      },
+      {
+        "name": "data.source",
+        "label": "Source",
+        "kind": "text",
+        "required": false,
+        "options": [
+          "editorial",
+          "customer_submission"
+        ]
+      },
+      {
+        "name": "data.image_url",
+        "label": "Image url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.image_alt",
+        "label": "Image alt",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      }
+    ]
+  },
+  "deleteTestimonial": {
+    "path": "/testimonials/{content}",
+    "method": "DELETE",
+    "permission": "content.manage"
+  },
+  "getAdminSiteSettings": {
+    "path": "/site-settings",
+    "method": "GET",
+    "permission": "content.view"
+  },
+  "updateSiteSettings": {
+    "path": "/site-settings",
+    "method": "PATCH",
+    "permission": "content.manage",
+    "fields": [
+      {
+        "name": "data.name",
+        "label": "Name",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.logo_alt",
+        "label": "Logo alt",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.newsletter_title",
+        "label": "Newsletter title",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.newsletter_copy",
+        "label": "Newsletter copy",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.seo_title",
+        "label": "Seo title",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.seo_description",
+        "label": "Seo description",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.copyright",
+        "label": "Copyright",
+        "kind": "text",
+        "nullable": true,
+        "required": false
+      },
+      {
+        "name": "data.logo_url",
+        "label": "Logo url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.image_fallback_url",
+        "label": "Image fallback url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.support_url",
+        "label": "Support url",
+        "kind": "text",
+        "hint": "HTTP(S) URL or an absolute path within the storefront.",
+        "required": false
+      },
+      {
+        "name": "data.support_email",
+        "label": "Support email",
+        "kind": "text",
+        "required": false
+      }
+    ]
+  },
+  "listNewsletter": {
+    "path": "/newsletter-subscribers",
+    "method": "GET",
+    "permission": "content.manage",
+    "filters": [
+      {
+        "name": "active",
+        "label": "Active",
+        "kind": "boolean"
+      }
+    ]
+  },
+  "listAdminReviews": {
+    "path": "/reviews",
+    "method": "GET",
+    "permission": "reviews.manage",
+    "filters": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "options": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
+      },
+      {
+        "name": "product_id",
+        "label": "Product id",
+        "kind": "text"
+      }
+    ]
+  },
+  "moderateReview": {
+    "path": "/reviews/{review}/moderate",
+    "method": "POST",
+    "permission": "reviews.manage",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "approved",
+          "rejected"
+        ]
+      },
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text",
+        "required": true
+      }
+    ]
+  },
+  "bulkModerateReviews": {
+    "path": "/reviews/bulk-actions",
+    "method": "POST",
+    "permission": "reviews.manage",
+    "fields": [
+      {
+        "name": "status",
+        "label": "Status",
+        "kind": "text",
+        "required": true,
+        "options": [
+          "approved",
+          "rejected"
+        ]
+      },
+      {
+        "name": "reason",
+        "label": "Reason",
+        "kind": "text",
+        "required": true
+      },
+      {
+        "name": "ids",
+        "label": "Ids",
+        "kind": "list",
+        "required": true
+      }
+    ]
+  }
+}
